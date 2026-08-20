@@ -1,8 +1,8 @@
 # Copyright (c) Borislav Stanimirov
 # SPDX-License-Identifier: MIT
 #
-add_executable(mylib-sandbox
+add_executable(pojobuf-sandbox
     sandbox.cpp
 )
-target_link_libraries(mylib-sandbox PRIVATE mylib::mylib)
-set_target_properties(mylib-sandbox PROPERTIES FOLDER sandbox)
+target_link_libraries(pojobuf-sandbox PRIVATE pojobuf::pojobuf)
+set_target_properties(pojobuf-sandbox PROPERTIES FOLDER sandbox)

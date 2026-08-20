@@ -3,8 +3,8 @@
 #
 cmake_minimum_required(VERSION 3.24 FATAL_ERROR)
 
-project(mylib
-    LANGUAGES C CXX
+project(pojobuf
+    LANGUAGES CXX
 )
 
 # cpm
@@ -23,39 +23,40 @@ list(APPEND CMAKE_MODULE_PATH
     "${CMAKE_CURRENT_SOURCE_DIR}/cmake"
 )
 
-set(ICM_DEV_CXX_STANDARD 23)
-set(ICM_DEV_C_STANDARD 11)
+set(ICM_DEV_CXX_STANDARD 20)
 
 include(icm_dev_mode)
 
 #######################################
 # options
 
-option(BUILD_SHARED_LIBS "${PROJECT_NAME}: build shared libraries" ON)
-option(MYLIB_BUILD_TESTS "${PROJECT_NAME}: enable testing and build tests" ${ICM_DEV_MODE})
-option(MYLIB_BUILD_EXAMPLES "${PROJECT_NAME}: build examples" ${ICM_DEV_MODE})
-option(MYLIB_BUILD_TUTORIALS "${PROJECT_NAME}: build tutorials" ${ICM_DEV_MODE})
-option(MYLIB_BUILD_BENCH "${PROJECT_NAME}: build benchmarks" ${ICM_DEV_MODE})
-option(MYLIB_BUILD_SANDBOX "${PROJECT_NAME}: build sandbox project (dev experiments)" ${ICM_DEV_MODE})
-mark_as_advanced(MYLIB_BUILD_SANDBOX)
+option(POJOBUF_BUILD_TESTS "${PROJECT_NAME}: enable testing and build tests" ${ICM_DEV_MODE})
+option(POJOBUF_BUILD_EXAMPLES "${PROJECT_NAME}: build examples" ${ICM_DEV_MODE})
+option(POJOBUF_BUILD_BENCH "${PROJECT_NAME}: build benchmarks" ${ICM_DEV_MODE})
+option(POJOBUF_BUILD_SANDBOX "${PROJECT_NAME}: build sandbox project (dev experiments)" ${ICM_DEV_MODE})
+mark_as_advanced(POJOBUF_BUILD_TESTS POJOBUF_BUILD_EXAMPLES POJOBUF_BUILD_BENCH POJOBUF_BUILD_SANDBOX)
 
 #######################################
 # code
 add_subdirectory(code)
 
-if(MYLIB_BUILD_TESTS)
+if(POJOBUF_BUILD_TESTS OR POJOBUF_BUILD_EXAMPLES  OR POJOBUF_BUILD_BENCH OR POJOBUF_BUILD_SANDBOX)
+    add_subdirectory(dev)
+endif()
+
+if(POJOBUF_BUILD_TESTS)
     enable_testing()
     add_subdirectory(test)
 endif()
 
-if(MYLIB_BUILD_BENCH)
+if(POJOBUF_BUILD_BENCH)
     add_subdirectory(bench)
 endif()
 
-if(MYLIB_BUILD_EXAMPLES)
+if(POJOBUF_BUILD_EXAMPLES)
     add_subdirectory(example)
 endif()
 
-if(MYLIB_BUILD_SANDBOX)
+if(POJOBUF_BUILD_SANDBOX)
     add_subdirectory(sandbox)
 endif()
