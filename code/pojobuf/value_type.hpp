@@ -55,7 +55,7 @@ struct value_type {
     constexpr bool is_blob() const { return t == blob; }
     constexpr bool is_array() const { return t == array; }
     constexpr bool is_object() const { return is(object); }
-    constexpr bool is_sorted_object() const { return t == object; }
+    constexpr bool is_sorted_object() const { return t == sorted_object; }
 
     constexpr bool is_falsy() const { return is(falsy); }
     constexpr bool is_boolean() const { return is(boolean); }
