@@ -12,7 +12,7 @@ namespace pojobuf::docbuild {
 
 using namespace docstore;
 
-constexpr inline int64_t make_payload(pl_tag t, int64_t value) {
+constexpr int64_t make_payload(pl_tag t, int64_t value) {
     return (value << pl_tag_bits) | int64_t(t);
 }
 

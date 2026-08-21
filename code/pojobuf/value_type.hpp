@@ -32,12 +32,12 @@ struct value_type {
     constexpr e operator*() const { return t; }
 
     // masks
-    static inline constexpr uint32_t falsy = undefined | null | false_;
-    static inline constexpr uint32_t boolean = false_ | true_;
-    static inline constexpr uint32_t integer = int32 | int64;
-    static inline constexpr uint32_t number = integer | real;
-    static inline constexpr uint32_t buffer = string | blob;
-    static inline constexpr uint32_t compound = array | object;
+    static constexpr uint32_t falsy = undefined | null | false_;
+    static constexpr uint32_t boolean = false_ | true_;
+    static constexpr uint32_t integer = int32 | int64;
+    static constexpr uint32_t number = integer | real;
+    static constexpr uint32_t buffer = string | blob;
+    static constexpr uint32_t compound = array | object;
 
     // intentionally implicit
     constexpr value_type(e t) : t(t) {}

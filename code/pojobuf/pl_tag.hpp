@@ -21,7 +21,7 @@ enum class pl_tag : uint32_t {
     object,
     sorted_object,
 };
-inline constexpr uint32_t operator*(pl_tag t) {
+constexpr uint32_t operator*(pl_tag t) {
     return uint32_t(t);
 }
 

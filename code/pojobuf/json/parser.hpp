@@ -47,7 +47,7 @@ class parser {
     // bit 0 (1) - plain ASCII string character
     // bit 1 (2) - whitespace
     // bit 3 (4) - numeric
-    inline static constexpr const uint8_t parse_flags[256] = {
+    static constexpr const uint8_t parse_flags[256] = {
      // 0    1    2    3    4    5    6    7      8    9    A    B    C    D    E    F
         0,   0,   0,   0,   0,   0,   0,   0,     0,   2,   2,   0,   0,   2,   0,   0, // 0
         0,   0,   0,   0,   0,   0,   0,   0,     0,   0,   0,   0,   0,   0,   0,   0, // 1

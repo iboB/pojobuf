@@ -10,10 +10,10 @@
 
 namespace pojobuf::docstore {
 
-pl_tag get_tag_from_payload(int64_t payload) {
+constexpr pl_tag get_tag_from_payload(int64_t payload) {
     return pl_tag(payload & ((1 << pl_tag_bits) - 1));
 }
-int64_t get_offset_from_payload(int64_t payload) {
+constexpr int64_t get_offset_from_payload(int64_t payload) {
     return payload >> pl_tag_bits;
 }
 
@@ -21,7 +21,7 @@ struct object_elem {
     int64_t key_start;
     int64_t key_end;
     int64_t value_payload;
-    static inline constexpr size_t num_fields = 3;
+    static constexpr size_t num_fields = 3;
 };
 static_assert(sizeof(object_elem) == object_elem::num_fields * sizeof(int64_t));
 
