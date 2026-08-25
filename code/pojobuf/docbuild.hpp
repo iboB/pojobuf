@@ -7,6 +7,7 @@
 #include "buffer_range.hpp"
 #include "bits/imath.hpp"
 #include <splat/inline.h>
+#include <cassert>
 
 namespace pojobuf::docbuild {
 
