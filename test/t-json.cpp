@@ -1,0 +1,200 @@
+#include <pojobuf/value.hpp>
+#include <pojobuf/docbuild.hpp>
+#include <pojobuf/docstore.hpp>
+#include <pojobuf/document.hpp>
+#include <pojobuf/document.parse.hpp>
+#include <pojobuf/json/parser.hpp>
+#include <pojobuf/json/util.hpp>
+#include <pojobuf/bits/pod_vector.hpp>
+
+#include <nlohmann/json.hpp> // oracle
+
+#include <doctest/doctest.h>
+
+using nljson = nlohmann::ordered_json;
+
+void rcmp(pojobuf::value val, const nljson& oracle) {
+    using enum pojobuf::value_type::e;
+    switch (*val.type()) {
+    case array: {
+        CHECK(oracle.is_array());
+        CHECK(val.get_compound_length() == oracle.size());
+        for (size_t i = 0; i < val.get_compound_length(); ++i) {
+            rcmp(val.get_array_element(i), oracle[i]);
+        }
+        break;
+    }
+    case object: {
+        // ordered json must be in the same order
+        CHECK(oracle.is_object());
+        CHECK(val.get_compound_length() == oracle.size());
+        size_t i = 0;
+        for (auto& [k, v] : oracle.items()) {
+            CHECK(val.get_object_key(i) == k);
+            rcmp(val.get_object_value(i), v);
+            ++i;
+        }
+        break;
+    }
+    case sorted_object: {
+        // compare ignoring order, since sorted_object is sorted by key
+        CHECK(oracle.is_object());
+        CHECK(val.get_compound_length() == oracle.size());
+        for (size_t i = 0; i < val.get_compound_length(); ++i) {
+            auto key = val.get_object_key(i);
+            CHECK(oracle.contains(key));
+            rcmp(val.get_object_value(i), oracle[key]);
+        }
+        break;
+    }
+    case string:
+        CHECK(oracle.is_string());
+        CHECK(val.get_string_value() == oracle.get<std::string_view>());
+        break;
+    case int32:
+        CHECK(oracle.is_number_integer());
+        CHECK(val.get_int32_value() == oracle.get<int32_t>());
+        break;
+    case int64:
+        CHECK(oracle.is_number_integer());
+        CHECK(val.get_int64_value() == oracle.get<int64_t>());
+        break;
+    case real:
+        CHECK(oracle.is_number());
+        if (oracle.is_number_integer()) {
+            auto i64 = oracle.get<int64_t>();
+            CHECK((i64 > std::numeric_limits<int32_t>::max() || i64 < std::numeric_limits<int32_t>::min()));
+        }
+        CHECK(val.get_real_value() == oracle.get<double>());
+        break;
+    case true_:
+        CHECK(oracle.is_boolean());
+        CHECK(oracle.get<bool>() == true);
+        break;
+    case false_:
+        CHECK(oracle.is_boolean());
+        CHECK(oracle.get<bool>() == false);
+        break;
+    case null:
+        CHECK(oracle.is_null());
+        break;
+    default:
+        CHECK_MESSAGE(false, "unexpected type %u in json", uint32_t(*val.type()));
+        break;
+    }
+}
+
+enum test_flags : uint32_t {
+    precise_real_values = 0b01,
+    also_sort_objects   = 0b10,
+
+    test_flags_default = 0,
+};
+
+template <bool UseCharconv, typename Builder>
+pojobuf::value parse_and_get_root(std::string_view json, Builder& builder) {
+    auto result = pojobuf::json::parse<UseCharconv>(json, builder);
+    REQUIRE(result);
+    CHECK(*result == json.data() + json.size());
+    auto pl = builder.finalize();
+    return pojobuf::value(pl, builder.adata.get_value_buffer_ptr(), builder.abyte.get_byte_ptr());
+}
+
+template <bool UseCharconv>
+void test_same_buf_mutable_str(const nljson& oracle, pojobuf::bits::pod_vector& buf, std::string json) {
+    auto data_alloc = pojobuf::docbuild::single_buf_nocheck_data_alloc::from_container(buf);
+    pojobuf::docbuild::mutable_source_byte_alloc byte_alloc(json.data());
+    pojobuf::docbuild::buf_builder builder(data_alloc, byte_alloc);
+    auto root = parse_and_get_root<UseCharconv>(json, builder);
+    rcmp(root, oracle);
+}
+
+void t(std::string_view json, uint32_t flags = test_flags_default) {
+    const auto oracle = nljson::parse(json);
+
+    pojobuf::bits::pod_vector buf(pojobuf::json::get_buffer_size_for_json(json));
+    pojobuf::bits::pod_vector scratch_buf(pojobuf::json::get_scratch_buffer_size_for_json(json));
+
+    test_same_buf_mutable_str<true>(oracle, buf, std::string(json));
+    if ((flags & precise_real_values) == 0) {
+        test_same_buf_mutable_str<false>(oracle, buf, std::string(json));
+    }
+
+    // same buf, const str
+    {
+        auto result = pojobuf::document_parse<pojobuf::json::parser_charconv_num>(json);
+        REQUIRE(result);
+        rcmp(result->root(), oracle);
+    }
+
+    // multi buf, const str
+    {
+        auto data_alloc = pojobuf::docbuild::multi_buf_nocheck_data_alloc::from_containers(buf, scratch_buf);
+        pojobuf::docbuild::valuebuf_byte_alloc byte_alloc(data_alloc);
+        pojobuf::docbuild::buf_builder builder(data_alloc, byte_alloc);
+        auto root = parse_and_get_root<true>(json, builder);
+        rcmp(root, oracle);
+    }
+
+    if (flags & also_sort_objects) {
+        auto result = pojobuf::document_parse<pojobuf::json::parser_charconv_num>(json, 0);
+        REQUIRE(result);
+        rcmp(result->root(), oracle);
+    }
+}
+
+TEST_CASE("successful parse and traverse") {
+    t("1");
+    t("0.5");
+    t("false");
+    t("null");
+    t("-3");
+    t("-3.141592", precise_real_values);
+    t("\"a\"");
+    t("\"hello\"");
+    t("[]");
+    t("[1]");
+    t("[1,2]");
+    t("[1,2,3]");
+    t("[1,2,3,4,5,6]");
+    t("[[1,2,3,4,5,6,7,8,9,3,4,5,3,1,4,1,5,9,2]]");
+    t("[[[[]]]]");
+    t("[[[[6]]]]");
+    t("[[[[6],[4],[4,1]]]]");
+    t("[\"a\"]");
+    t("[0,[0,[0],0],0]");
+    t("[-2147483648, 2147483647, -2147483649, 2147483648]");
+    t(R"({"ar": [2.5, -5], "val": 5, "b": false, "str": "hello world"})", also_sort_objects);
+    t(R"([1, "hello", -5, 0.25, 1e2, 2.5e-1, 9, {"key": "value", "another_key": 42}, false])", also_sort_objects);
+    t(R"([
+        "easy",    1, -3, -0.25, 1e-10, 1e60, 1e-120,
+        "tricky",  1.65, 0.3, 0.333, 3.141592, 3e-121,
+        "xtricky", 27.900001108646396, 0.9689776221127033
+    ])", precise_real_values);
+    t(R"([
+        {
+            "character": "John Snow",
+            "HP": 20,
+            "MP": 10,
+            "skills": [
+                {"skill": "Sword", "MP": 1},
+                {"skill": "Immortality", "MP": 10}
+            ],
+            "familiar": {"familiar": "Ghost", "HP": 5, "skill": {"skill": "Bite", "MP": 1}}
+        },
+        {
+            "character": "Hodor",
+            "HP": 40,
+            "MP": 0,
+            "skills": [
+                {"skill": "Hodor", "MP": 0}
+            ]
+        }
+    ])", also_sort_objects);
+    t(R"([
+        "foo\tbar",
+        "\"\\/\b\f\n\r\t",
+        "\ud950\uDf21\n"
+    ])");
+    t("[3.141592, 4e4, 5.1e-5, 0.3e+2]", precise_real_values);
+}
