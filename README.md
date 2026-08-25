@@ -1,8 +1,10 @@
 # cpp-lib-template
 
-[![Standard](https://img.shields.io/badge/C%2B%2B-23-blue.svg)](https://en.wikipedia.org/wiki/C%2B%2B23) [![Standard](https://img.shields.io/badge/C-11-purple.svg)](https://en.wikipedia.org/wiki/C11) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![Standard](https://img.shields.io/badge/C%2B%2B-20-blue.svg)](https://en.wikipedia.org/wiki/C%2B%2B20) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-A template for a C++ library
+A C++ library for building and parsing JSON-type structures in flat buffers.
+
+The name is a play on [protobuf](https://protobuf.dev/) combining it with [POJO](https://en.wikipedia.org/wiki/Plain_old_Java_object), where POJO is retronymmed to mean Plain Ol' JSON Object. Yes, yes. Very meta.
 
 ## License
 

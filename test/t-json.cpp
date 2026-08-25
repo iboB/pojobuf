@@ -7,9 +7,12 @@
 #include <pojobuf/json/util.hpp>
 #include <pojobuf/bits/pod_vector.hpp>
 
-#include <nlohmann/json.hpp> // oracle
-
 #include <doctest/doctest.h>
+
+#include <nlohmann/json.hpp> // oracle
+#include <json-test-data.h>
+#include <filesystem>
+#include <fstream>
 
 using nljson = nlohmann::ordered_json;
 
@@ -197,4 +200,15 @@ TEST_CASE("successful parse and traverse") {
         "\ud950\uDf21\n"
     ])");
     t("[3.141592, 4e4, 5.1e-5, 0.3e+2]", precise_real_values);
+
+    auto size = std::filesystem::file_size(JSON_TEST_DATA_FILE_github_events_json);
+    std::string str(size, '0');
+    std::ifstream in(JSON_TEST_DATA_FILE_github_events_json, std::ios::binary);
+    in.read(str.data(), size);
+
+    // this particular file has windows line endings and ends with \r\n
+    // to pass our check that the entire string was parsed we need to pop them
+    str.pop_back(); str.pop_back();
+
+    t(str, also_sort_objects);
 }
