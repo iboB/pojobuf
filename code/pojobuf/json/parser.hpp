@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 //
 #pragma once
+#include "util.hpp"
 #include "../parse_error.hpp"
 #include "../parse_error.create.hpp"
 #include "../pl_tag.hpp"
@@ -25,23 +26,18 @@ namespace pojobuf::json {
 
 using errc = parse_error::errc;
 
-template <typename Builder, bool UseCharconv>
-class parser {
-    const char* m_text_begin;
-    const char* m_text_end;
-    Builder& m_builder;
-
-    // error handlng
-    jmp_buf m_jmpbuf; // error handling jump buf
-    const char* m_error_location;
-    errc m_error_code;
-    std::string_view m_error_arg;
-
-    [[noreturn]] void fail(const char* p, parse_error::errc code, std::string_view arg = {}) noexcept {
-        m_error_location = p;
-        m_error_code = code;
-        m_error_arg = arg;
-        longjmp(m_jmpbuf, 1);
+struct parser_base {
+    static size_t get_buffer_size_for_text(size_t text_size) {
+        return get_buffer_size_for_json(text_size);
+    }
+    static size_t get_buffer_size_for_text(std::string_view text) {
+        return get_buffer_size_for_json(text);
+    }
+    static size_t get_scratch_buffer_size_for_text(size_t text_size) {
+        return get_scratch_buffer_size_for_json(text_size);
+    }
+    static size_t get_scratch_buffer_size_for_text(std::string_view text) {
+        return get_scratch_buffer_size_for_json(text.size());
     }
 
     // bit 0 (1) - plain ASCII string character
@@ -67,27 +63,6 @@ class parser {
     }
     static FORCE_INLINE bool is_whitespace(char c) noexcept {
         return (parse_flags[uint8_t(c)] & 2) != 0;
-    }
-
-    const char* skip_whitespace(const char* p) noexcept {
-        while (true) {
-            if (at_eof(p)) [[unlikely]] {
-                fail(p, errc::unexpected_end);
-            }
-            else if (is_whitespace(*p)) {
-                ++p;
-            }
-            else {
-                return p;
-            }
-        }
-    }
-
-    bool at_eof(const char* p) const noexcept {
-        return p == m_text_end;
-    }
-    bool has_remaining_characters(const char* p, int n) const noexcept {
-        return p + n <= m_text_end;
     }
 
     static double pow10(int64_t exponent) {
@@ -159,6 +134,47 @@ class parser {
         // clang-format on
 
         return constants[exponent + 323];
+    }
+};
+
+template <typename Builder, bool UseCharconv>
+class parser : public parser_base {
+    const char* m_text_begin;
+    const char* m_text_end;
+    Builder& m_builder;
+
+    // error handlng
+    jmp_buf m_jmpbuf; // error handling jump buf
+    const char* m_error_location;
+    errc m_error_code;
+    std::string_view m_error_arg;
+
+    [[noreturn]] void fail(const char* p, parse_error::errc code, std::string_view arg = {}) noexcept {
+        m_error_location = p;
+        m_error_code = code;
+        m_error_arg = arg;
+        longjmp(m_jmpbuf, 1);
+    }
+
+    const char* skip_whitespace(const char* p) noexcept {
+        while (true) {
+            if (at_eof(p)) [[unlikely]] {
+                fail(p, errc::unexpected_end);
+            }
+            else if (is_whitespace(*p)) {
+                ++p;
+            }
+            else {
+                return p;
+            }
+        }
+    }
+
+    bool at_eof(const char* p) const noexcept {
+        return p == m_text_end;
+    }
+    bool has_remaining_characters(const char* p, int n) const noexcept {
+        return p + n <= m_text_end;
     }
 
     // custom number parser
