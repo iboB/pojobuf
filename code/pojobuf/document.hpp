@@ -9,6 +9,9 @@
 namespace pojobuf {
 
 struct no_buf {
+    constexpr no_buf() = default;
+    template <typename T>
+    constexpr explicit no_buf(const T&) {}
     constexpr bool empty() const noexcept { return true; }
     constexpr const char* data() const noexcept { return nullptr; }
 };

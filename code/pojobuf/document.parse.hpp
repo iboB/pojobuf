@@ -34,9 +34,18 @@ itlib::expected<document<ByteBuf>, parse_error> document_parse(std::string_view 
     return document<ByteBuf>(std::move(buffer), ByteBuf{}, nullptr, builder.finalize());
 }
 
-template <template <typename> class Parser, typename ByteBuf>
-itlib::expected<document<std::decay_t<ByteBuf>>, parse_error> document_parse(parse_alloc_strategy strategy, ByteBuf&& source, size_t max_unsorted_obj_records = size_t(-1)) {
-    using byte_buf_type = std::decay_t<ByteBuf>;
+namespace bits {
+struct deduce_t {};
+}
+
+template <template <typename> class Parser, typename DocByteBuf = bits::deduce_t, typename ArgByteBuf>
+auto document_parse(parse_alloc_strategy strategy, ArgByteBuf&& source, size_t max_unsorted_obj_records = size_t(-1)) {
+    using byte_buf_type = std::conditional_t<
+        std::is_same_v<std::decay_t<DocByteBuf>, bits::deduce_t>,
+        std::decay_t<ArgByteBuf>,
+        DocByteBuf
+    >;
+    using ret_t = itlib::expected<document<byte_buf_type>, parse_error>;
 
     std::string_view source_sv(source.data(), source.size());
     if (strategy == parse_alloc_strategy::embed_bytes_in_data) {
@@ -59,17 +68,17 @@ itlib::expected<document<std::decay_t<ByteBuf>>, parse_error> document_parse(par
 
     auto r = parser.parse();
     if (!r) {
-        return itlib::unexpected(std::move(r).error());
+        return ret_t{itlib::unexpected(std::move(r).error())};
     }
     buffer.resize(data_alloc.get_value_offset());
 
     auto root_pl = builder.finalize();
     if (strategy == parse_alloc_strategy::take_source) {
         // we can take the source as is, no need to copy it
-        return document<byte_buf_type>(std::move(buffer), std::move(source), nullptr, root_pl);
+        return ret_t{document<byte_buf_type>(std::move(buffer), byte_buf_type{std::move(source)}, nullptr, root_pl)};
     }
     else if (strategy == parse_alloc_strategy::use_external_mutable_source) {
-        return document<byte_buf_type>(std::move(buffer), byte_buf_type{}, source.data(), root_pl);
+        return ret_t{document<byte_buf_type>(std::move(buffer), byte_buf_type{}, source.data(), root_pl)};
     }
     else {
         assert(false); // unknown strategy
