@@ -5,7 +5,7 @@
 
 namespace pojobuf {
 
-enum class parse_alloc_strategy {
+enum class doc_alloc_strategy {
     external_mutable_source,
     embed_bytes_in_data,
     take_source,
