@@ -5,7 +5,7 @@
 #include "document.hpp"
 #include "docbuild.hpp"
 #include "parse_error.hpp"
-#include "doc_alloc_strategy.hpp"
+#include "parse_alloc_strategy.hpp"
 #include <itlib/expected.hpp>
 
 namespace pojobuf {
@@ -35,11 +35,11 @@ itlib::expected<document<ByteBuf>, parse_error> document_parse(std::string_view 
 }
 
 template <template <typename> class Parser, typename ByteBuf>
-itlib::expected<document<std::decay_t<ByteBuf>>, parse_error> document_parse(doc_alloc_strategy strategy, ByteBuf&& source, size_t max_unsorted_obj_records = size_t(-1)) {
+itlib::expected<document<std::decay_t<ByteBuf>>, parse_error> document_parse(parse_alloc_strategy strategy, ByteBuf&& source, size_t max_unsorted_obj_records = size_t(-1)) {
     using byte_buf_type = std::decay_t<ByteBuf>;
 
     std::string_view source_sv(source.data(), source.size());
-    if (strategy == doc_alloc_strategy::embed_bytes_in_data) {
+    if (strategy == parse_alloc_strategy::embed_bytes_in_data) {
         return document_parse<Parser, byte_buf_type>(source_sv, max_unsorted_obj_records);
     }
 
@@ -64,11 +64,11 @@ itlib::expected<document<std::decay_t<ByteBuf>>, parse_error> document_parse(doc
     buffer.resize(data_alloc.get_value_offset());
 
     auto root_pl = builder.finalize();
-    if (strategy == doc_alloc_strategy::take_source) {
+    if (strategy == parse_alloc_strategy::take_source) {
         // we can take the source as is, no need to copy it
         return document<byte_buf_type>(std::move(buffer), std::move(source), nullptr, root_pl);
     }
-    else if (strategy == doc_alloc_strategy::external_mutable_source) {
+    else if (strategy == parse_alloc_strategy::use_external_mutable_source) {
         return document<byte_buf_type>(std::move(buffer), byte_buf_type{}, source.data(), root_pl);
     }
     else {

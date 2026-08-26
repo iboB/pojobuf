@@ -111,7 +111,7 @@ void t(std::string_view json, uint32_t flags = test_flags_default) {
 
     {
         auto doc = pojobuf::document_parse<pojobuf::json::parser_charconv_num>(
-            pojobuf::doc_alloc_strategy::take_source,
+            pojobuf::parse_alloc_strategy::take_source,
             std::string(json)
         );
         REQUIRE(doc);

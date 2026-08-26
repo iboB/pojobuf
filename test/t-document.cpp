@@ -11,12 +11,13 @@ const std::string_view json = R"({"ar": [2.3, -5], "val": 5, "b": false, "str": 
 
 template <typename B>
 using parser = pojobuf::json::parser_charconv_num<B>;
-using as = pojobuf::doc_alloc_strategy;
+using as = pojobuf::parse_alloc_strategy;
 
 TEST_CASE("embedded bytes") {
     auto doc = pojobuf::document_parse<parser>(json);
     REQUIRE(doc);
-    CHECK(doc->alloc_strategy() == as::embed_bytes_in_data);
+    CHECK_FALSE(doc->uses_external_byte_buf());
+    CHECK_FALSE(doc->has_separate_byte_buf());
     const auto doc_buf_ptr = reinterpret_cast<const void*>(doc->buffer().data());
     CHECK(doc_buf_ptr == doc->byte_ptr());
 
@@ -38,9 +39,10 @@ TEST_CASE("embedded bytes") {
 
 TEST_CASE("external bytes") {
     auto json_copy = std::string(json);
-    auto doc = pojobuf::document_parse<parser>(as::external_mutable_source, json_copy);
+    auto doc = pojobuf::document_parse<parser>(as::use_external_mutable_source, json_copy);
     CHECK(json_copy != json); // string was modified by the parser
-    CHECK(doc->alloc_strategy() == as::external_mutable_source);
+    CHECK(doc->uses_external_byte_buf());
+    CHECK_FALSE(doc->has_separate_byte_buf());
 
     CHECK(doc->byte_ptr() == json_copy.data());
 
@@ -71,7 +73,8 @@ TEST_CASE("external bytes") {
 
 TEST_CASE("embedded bytes") {
     auto doc = pojobuf::document_parse<parser>(as::take_source, std::string(json));
-    CHECK(doc->alloc_strategy() == as::take_source);
+    CHECK_FALSE(doc->uses_external_byte_buf());
+    CHECK(doc->has_separate_byte_buf());
 
     const auto doc_buf_ptr = doc->buffer().data();
     const auto doc_byte_ptr = doc->byte_ptr();

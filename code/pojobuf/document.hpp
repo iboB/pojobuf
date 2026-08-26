@@ -3,7 +3,6 @@
 //
 #pragma once
 #include "value.hpp"
-#include "doc_alloc_strategy.hpp"
 #include "bits/pod_vector.hpp"
 #include <splat/unreachable.h>
 
@@ -60,32 +59,27 @@ public:
 
     int64_t root_payload() const noexcept { return m_root_payload; }
 
-    doc_alloc_strategy alloc_strategy() const noexcept {
-        using enum doc_alloc_strategy;
-        if (!m_x_byte_ptr){
-            if (m_byte_buf.empty()) {
-                return embed_bytes_in_data;
-            }
-            else {
-                return take_source;
-            }
-        }
-        else {
-            return external_mutable_source;
-        }
+    bool has_separate_byte_buf() const noexcept {
+        return !m_byte_buf.empty();
+    }
+
+    // if true, the document uses an external byte buffer and does not own all data
+    // it is then the responsibility of the user to ensure that the external buffer remains valid
+    // for the lifetime of the document
+    // otherwise, the document owns all needed data and can be freely moved and copied around
+    bool uses_external_byte_buf() const noexcept {
+        return !!m_x_byte_ptr;
     }
 
     const char* byte_ptr() const noexcept {
-        using enum doc_alloc_strategy;
-        switch (alloc_strategy()) {
-        case embed_bytes_in_data:
-            return reinterpret_cast<const char*>(m_buffer.data());
-        case take_source:
-            return m_byte_buf.data();
-        case external_mutable_source:
+        if (uses_external_byte_buf()) {
             return m_x_byte_ptr;
-        default:
-            SPLAT_UNREACHABLE();
+        }
+        else if (has_separate_byte_buf()) {
+            return m_byte_buf.data();
+        }
+        else {
+            return reinterpret_cast<const char*>(m_buffer.data());
         }
     }
 
