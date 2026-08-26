@@ -36,7 +36,12 @@ namespace bits {
 struct deduce_t {};
 }
 
-template <typename Parser, parse_alloc_strategy Strategy, typename DocByteBuf = bits::deduce_t, typename Source>
+template <
+    typename Parser,
+    parse_alloc_strategy Strategy,
+    typename DocByteBuf = bits::deduce_t,
+    typename Source
+>
 auto document_parse_with(Source&& source, size_t max_unsorted_obj_records = size_t(-1)) {
     using namespace docbuild;
 
@@ -87,8 +92,15 @@ auto document_parse_with(Source&& source, size_t max_unsorted_obj_records = size
 }
 
 template <typename Parser, typename ByteBuf = no_buf>
-itlib::expected<document<ByteBuf>, parse_error> document_parse(std::string_view source, size_t max_unsorted_obj_records = size_t(-1)) {
-    return document_parse_with<Parser, parse_alloc_strategy::embed_bytes_in_data, no_buf>(source, max_unsorted_obj_records);
+itlib::expected<document<ByteBuf>, parse_error> document_parse(
+    std::string_view source,
+    size_t max_unsorted_obj_records = size_t(-1)
+) {
+    return document_parse_with<
+        Parser,
+        parse_alloc_strategy::embed_bytes_in_data,
+        no_buf
+    >(source, max_unsorted_obj_records);
 }
 
 } // namespace pojobuf
