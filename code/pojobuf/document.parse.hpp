@@ -99,7 +99,7 @@ itlib::expected<document<ByteBuf>, parse_error> document_parse(
     return document_parse_with<
         Parser,
         parse_alloc_strategy::embed_bytes_in_data,
-        no_buf
+        ByteBuf
     >(source, max_unsorted_obj_records);
 }
 
