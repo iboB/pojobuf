@@ -4,12 +4,12 @@
 #pragma once
 #include "value.hpp"
 #include "bits/pod_vector.hpp"
-#include <type_traits>
 
 namespace pojobuf {
 
 struct embedded_bytes {
-    const char* data() const noexcept { return nullptr; }
+    constexpr bool empty() const noexcept { return true; }
+    constexpr const char* data() const noexcept { return nullptr; }
 };
 struct external_bytes {
     const char* ptr = nullptr;
@@ -59,12 +59,7 @@ public:
     const int64_t root_payload() const noexcept { return m_root_payload; }
 
     bool has_embedded_bytes() const noexcept {
-        if constexpr (std::is_same_v<ByteBuf, embedded_bytes>) {
-            return true;
-        }
-        else {
-            return m_byte_buf.empty();
-        }
+        return m_byte_buf.empty();
     }
 
     const char* byte_ptr() const noexcept {
