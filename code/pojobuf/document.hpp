@@ -58,7 +58,7 @@ public:
     const bits::pod_vector& buffer() const noexcept { return m_buffer; }
     const ByteBuf& byte_buf() const noexcept { return m_byte_buf; }
 
-    const int64_t root_payload() const noexcept { return m_root_payload; }
+    int64_t root_payload() const noexcept { return m_root_payload; }
 
     doc_alloc_strategy alloc_strategy() const noexcept {
         using enum doc_alloc_strategy;
