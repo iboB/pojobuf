@@ -43,14 +43,14 @@ TEST_CASE("embedded bytes") {
 
 TEST_CASE("embedded bytes explicit") {
     auto json_copy = std::string(json);
-    auto doc = pojobuf::document_parse<parser>(as::embed_bytes_in_data, json_copy);
+    auto doc = pojobuf::document_parse_with<parser, as::embed_bytes_in_data>(json_copy);
     CHECK(json_copy == json); // string was not modified by the parser)
     test_embedded_bytes(doc);
 }
 
 TEST_CASE("external bytes") {
     auto json_copy = std::string(json);
-    auto doc = pojobuf::document_parse<parser, pojobuf::no_buf>(as::use_external_mutable_source, json_copy);
+    auto doc = pojobuf::document_parse_with<parser, as::use_external_mutable_source, pojobuf::no_buf>(json_copy);
     CHECK(json_copy != json); // string was modified by the parser
     CHECK(doc->uses_external_byte_buf());
     CHECK_FALSE(doc->has_separate_byte_buf());
@@ -83,7 +83,7 @@ TEST_CASE("external bytes") {
 }
 
 TEST_CASE("separate bytes") {
-    auto doc = pojobuf::document_parse<parser>(as::take_source, std::string(json));
+    auto doc = pojobuf::document_parse_with<parser, as::take_source>(std::string(json));
     CHECK_FALSE(doc->uses_external_byte_buf());
     CHECK(doc->has_separate_byte_buf());
 

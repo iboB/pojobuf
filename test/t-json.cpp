@@ -110,10 +110,10 @@ void t(std::string_view json, uint32_t flags = test_flags_default) {
     pojobuf::bits::pod_vector scratch_buf(pojobuf::json::get_scratch_buffer_size_for_json(json));
 
     {
-        auto doc = pojobuf::document_parse<pojobuf::json::parser_charconv_num>(
-            pojobuf::parse_alloc_strategy::take_source,
-            std::string(json)
-        );
+        auto doc = pojobuf::document_parse_with<
+            pojobuf::json::parser_charconv_num,
+            pojobuf::parse_alloc_strategy::take_source
+        >(std::string(json));
         REQUIRE(doc);
         rcmp(doc->root(), oracle);
     }
