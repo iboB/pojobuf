@@ -103,24 +103,27 @@ pojobuf::value parse_and_get_root(std::string_view json, Builder& builder) {
     return pojobuf::value(pl, builder.adata.get_value_buffer_ptr(), builder.abyte.get_byte_ptr());
 }
 
-template <bool UseCharconv>
-void test_same_buf_mutable_str(const nljson& oracle, pojobuf::bits::pod_vector& buf, std::string json) {
-    auto data_alloc = pojobuf::docbuild::single_buf_nocheck_data_alloc::from_container(buf);
-    pojobuf::docbuild::mutable_source_byte_alloc byte_alloc(json.data());
-    pojobuf::docbuild::buf_builder builder(data_alloc, byte_alloc);
-    auto root = parse_and_get_root<UseCharconv>(json, builder);
-    rcmp(root, oracle);
-}
-
 void t(std::string_view json, uint32_t flags = test_flags_default) {
     const auto oracle = nljson::parse(json);
 
     pojobuf::bits::pod_vector buf(pojobuf::json::get_buffer_size_for_json(json));
     pojobuf::bits::pod_vector scratch_buf(pojobuf::json::get_scratch_buffer_size_for_json(json));
 
-    test_same_buf_mutable_str<true>(oracle, buf, std::string(json));
+    {
+        auto doc = pojobuf::document_parse<pojobuf::json::parser_charconv_num>(
+            pojobuf::parse_alloc_strategy::take_source,
+            std::string(json)
+        );
+        REQUIRE(doc);
+        rcmp(doc->root(), oracle);
+    }
     if ((flags & precise_real_values) == 0) {
-        test_same_buf_mutable_str<false>(oracle, buf, std::string(json));
+        auto json_copy = std::string(json);
+        auto data_alloc = pojobuf::docbuild::single_buf_nocheck_data_alloc::from_container(buf);
+        pojobuf::docbuild::mutable_source_byte_alloc byte_alloc(json_copy.data());
+        pojobuf::docbuild::buf_builder builder(data_alloc, byte_alloc);
+        auto root = parse_and_get_root<false>(json_copy, builder);
+        rcmp(root, oracle);
     }
 
     // same buf, const str

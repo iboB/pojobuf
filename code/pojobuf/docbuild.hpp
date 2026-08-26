@@ -33,7 +33,7 @@ public:
     const size_t max_unsorted_obj_records;
 
     // not sorting objects by default
-    explicit buf_builder(DataAlloc& adata, ByteAlloc& abyte, size_t max_unsorted_obj_records = size_t(0) - 1)
+    explicit buf_builder(DataAlloc& adata, ByteAlloc& abyte, size_t max_unsorted_obj_records = size_t(-1))
         : adata(adata)
         , abyte(abyte)
         , max_unsorted_obj_records(max_unsorted_obj_records)
