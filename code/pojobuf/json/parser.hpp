@@ -26,20 +26,7 @@ namespace pojobuf::json {
 
 using errc = parse_error::errc;
 
-struct parser_base {
-    static size_t get_buffer_size_for_text(size_t text_size) {
-        return get_buffer_size_for_json(text_size);
-    }
-    static size_t get_buffer_size_for_text(std::string_view text) {
-        return get_buffer_size_for_json(text);
-    }
-    static size_t get_scratch_buffer_size_for_text(size_t text_size) {
-        return get_scratch_buffer_size_for_json(text_size);
-    }
-    static size_t get_scratch_buffer_size_for_text(std::string_view text) {
-        return get_scratch_buffer_size_for_json(text.size());
-    }
-
+struct t_parser_base {
     // bit 0 (1) - plain ASCII string character
     // bit 1 (2) - whitespace
     // bit 3 (4) - numeric
@@ -138,7 +125,7 @@ struct parser_base {
 };
 
 template <typename Builder, bool UseCharconv>
-class parser : public parser_base {
+class t_parser : public t_parser_base {
     const char* m_text_begin;
     const char* m_text_end;
     Builder& m_builder;
@@ -671,7 +658,7 @@ class parser : public parser_base {
         }
     }
 public:
-    parser(std::string_view text, Builder& builder) noexcept
+    t_parser(std::string_view text, Builder& builder) noexcept
         : m_text_begin(text.data())
         , m_text_end(text.data() + text.size())
         , m_builder(builder)
@@ -855,23 +842,32 @@ public:
     }
 };
 
-template <bool UseCharconv = false, typename Builder>
-itlib::expected<const char*, parse_error> parse(std::string_view text, Builder& builder) {
-    parser<Builder, UseCharconv> p(text, builder);
-    return p.parse();
-}
-
-template <typename Builder>
-class parser_charconv_num : public parser<Builder, true> {
+template <bool UseCharconv = false>
+class parser {
 public:
-    using parser<Builder, true>::parser;
+    static size_t get_buffer_size_for_text(size_t text_size) {
+        return get_buffer_size_for_json(text_size);
+    }
+    static size_t get_buffer_size_for_text(std::string_view text) {
+        return get_buffer_size_for_json(text);
+    }
+    static size_t get_scratch_buffer_size_for_text(size_t text_size) {
+        return get_scratch_buffer_size_for_json(text_size);
+    }
+    static size_t get_scratch_buffer_size_for_text(std::string_view text) {
+        return get_scratch_buffer_size_for_json(text.size());
+    }
+
+    template <typename Builder>
+    static itlib::expected<const char*, parse_error> parse(std::string_view text, Builder& builder) {
+        t_parser<Builder, UseCharconv> p(text, builder);
+        return p.parse();
+    }
 };
 
-template <typename Builder>
-class parser_custom_num : public parser<Builder, false> {
-public:
-    using parser<Builder, false>::parser;
-};
+
+using parser_charconv_num = parser<true>;
+using parser_custom_num = parser<false>;
 
 } // namespace pojobuf::json
 

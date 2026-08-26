@@ -96,7 +96,7 @@ enum test_flags : uint32_t {
 
 template <bool UseCharconv, typename Builder>
 pojobuf::value parse_and_get_root(std::string_view json, Builder& builder) {
-    auto result = pojobuf::json::parse<UseCharconv>(json, builder);
+    auto result = pojobuf::json::parser<UseCharconv>::parse(json, builder);
     REQUIRE(result);
     CHECK(*result == json.data() + json.size());
     auto pl = builder.finalize();

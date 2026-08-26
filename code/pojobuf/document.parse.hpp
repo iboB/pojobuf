@@ -10,22 +10,20 @@
 
 namespace pojobuf {
 
-template <template <typename> class Parser, typename ByteBuf = no_buf>
+template <typename Parser, typename ByteBuf = no_buf>
 itlib::expected<document<ByteBuf>, parse_error> document_parse(std::string_view source, size_t max_unsorted_obj_records = size_t(-1)) {
     using namespace docbuild;
     using data_alloc_type = single_buf_nocheck_data_alloc;
     using builder_type = buf_builder<data_alloc_type, valuebuf_byte_alloc<data_alloc_type>>;
-    using parser_type = Parser<builder_type>;
 
-    const auto buf_size = parser_type::get_buffer_size_for_text(source);
+    const auto buf_size = Parser::get_buffer_size_for_text(source);
     bits::pod_vector buffer(buf_size);
 
     auto data_alloc = single_buf_nocheck_data_alloc::from_container(buffer);
     valuebuf_byte_alloc byte_alloc(data_alloc);
     builder_type builder(data_alloc, byte_alloc, max_unsorted_obj_records);
 
-    Parser<builder_type> parser(source, builder);
-    auto r = parser.parse();
+    auto r = Parser::parse(source, builder);
     if (!r) {
         return itlib::unexpected(std::move(r).error());
     }
@@ -38,11 +36,11 @@ namespace bits {
 struct deduce_t {};
 }
 
-template <template <typename> class Parser, typename DocByteBuf = bits::deduce_t, typename ArgByteBuf>
-auto document_parse(parse_alloc_strategy strategy, ArgByteBuf&& source, size_t max_unsorted_obj_records = size_t(-1)) {
+template <typename Parser, typename DocByteBuf = bits::deduce_t, typename Source>
+auto document_parse(parse_alloc_strategy strategy, Source&& source, size_t max_unsorted_obj_records = size_t(-1)) {
     using byte_buf_type = std::conditional_t<
         std::is_same_v<std::decay_t<DocByteBuf>, bits::deduce_t>,
-        std::decay_t<ArgByteBuf>,
+        std::decay_t<Source>,
         DocByteBuf
     >;
     using ret_t = itlib::expected<document<byte_buf_type>, parse_error>;
@@ -55,18 +53,15 @@ auto document_parse(parse_alloc_strategy strategy, ArgByteBuf&& source, size_t m
     using namespace docbuild;
     using data_alloc_type = single_buf_nocheck_data_alloc;
     using builder_type = buf_builder<data_alloc_type, mutable_source_byte_alloc>;
-    using parser_type = Parser<builder_type>;
 
-    const auto buf_size = parser_type::get_buffer_size_for_text(source_sv);
+    const auto buf_size = Parser::get_buffer_size_for_text(source_sv);
     bits::pod_vector buffer(buf_size);
     auto data_alloc = single_buf_nocheck_data_alloc::from_container(buffer);
 
     mutable_source_byte_alloc byte_alloc(source.data());
     builder_type builder(data_alloc, byte_alloc, max_unsorted_obj_records);
 
-    Parser<builder_type> parser(source_sv, builder);
-
-    auto r = parser.parse();
+    auto r = Parser::parse(source_sv, builder);
     if (!r) {
         return ret_t{itlib::unexpected(std::move(r).error())};
     }

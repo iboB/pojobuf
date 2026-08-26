@@ -79,7 +79,7 @@ int main() {
 
     pojobuf::docbuild::buf_builder builder(data_alloc, byte_alloc);
 
-    pojobuf::json::parse(json, builder);
+    pojobuf::json::parser_charconv_num::parse(json, builder);
 
     auto cur_payload = builder.finalize();
     pojobuf::value root(cur_payload, data_alloc.get_value_buffer_ptr(), byte_alloc.get_byte_ptr());

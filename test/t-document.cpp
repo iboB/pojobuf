@@ -9,8 +9,7 @@
 
 const std::string_view json = R"({"ar": [2.3, -5], "val": 5, "b": false, "str": "hello world"})";
 
-template <typename B>
-using parser = pojobuf::json::parser_charconv_num<B>;
+using parser = pojobuf::json::parser_charconv_num;
 using as = pojobuf::parse_alloc_strategy;
 
 template <typename Doc>
