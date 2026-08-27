@@ -276,9 +276,6 @@ public:
 
     buffer_range push_internal_string(const char* begin, const char* end) noexcept {
         assert(begin > m_text);
-
-        // be nice to our C friends and null terminate (at the cost of a safe const_cast)
-        *const_cast<char*>(end) = '\0';
         return buffer_range{begin - m_text, end - m_text};
     }
 

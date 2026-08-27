@@ -7,7 +7,7 @@
 
 #include <doctest/doctest.h>
 
-const std::string_view json = R"({"ar": [2.3, -5], "val": 5, "b": false, "str": "hello world"})";
+const std::string_view json = R"({"ar": [2.3, -5], "val": 5, "b": false, "str": "hello\nworld"})";
 
 using parser = pojobuf::json::parser_charconv_num;
 using as = pojobuf::parse_alloc_strategy;
