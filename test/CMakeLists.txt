@@ -10,5 +10,5 @@ macro(pojobuf_test test)
 endmacro()
 
 pojobuf_test(value_type)
-pojobuf_test(json LIBRARIES nlohmann_json::nlohmann_json test-data::json)
+pojobuf_test(json LIBRARIES nlohmann_json::nlohmann_json test-data::json pojobuf::dev)
 pojobuf_test(document)

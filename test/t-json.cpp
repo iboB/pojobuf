@@ -1,3 +1,6 @@
+// Copyright (c) Borislav Stanimirov
+// SPDX-License-Identifier: MIT
+//
 #include <pojobuf/value.hpp>
 #include <pojobuf/docbuild.hpp>
 #include <pojobuf/docstore.hpp>
@@ -9,10 +12,10 @@
 
 #include <doctest/doctest.h>
 
+#include <pojobuf/dev/read_file.hpp>
+
 #include <nlohmann/json.hpp> // oracle
 #include <json-test-data.h>
-#include <filesystem>
-#include <fstream>
 
 using nljson = nlohmann::ordered_json;
 
@@ -204,10 +207,8 @@ TEST_CASE("successful parse and traverse") {
     ])");
     t("[3.141592, 4e4, 5.1e-5, 0.3e+2]", precise_real_values);
 
-    auto size = std::filesystem::file_size(JSON_TEST_DATA_FILE_github_events_json);
-    std::string str(size, '0');
-    std::ifstream in(JSON_TEST_DATA_FILE_github_events_json, std::ios::binary);
-    in.read(str.data(), size);
+
+    auto str = pojobuf::dev::read_file(JSON_TEST_DATA_FILE_github_events_json);
 
     // this particular file has windows line endings and ends with \r\n
     // to pass our check that the entire string was parsed we need to pop them
