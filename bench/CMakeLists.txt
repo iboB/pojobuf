@@ -8,6 +8,7 @@ icm_get_native_arch_flag(nativeArchFlag)
 
 # benchmarking against
 CPMAddPackage("gh:iboB/sajson@1.0.1ibob#eec5b8e")
+CPMAddPackage(gh:simdjson/simdjson@4.6.9)
 
 macro(pojobuf_benchmark name)
     set(tgt bench-pojobuf-${name})
@@ -19,6 +20,7 @@ macro(pojobuf_benchmark name)
         picobench::picobench
         pojobuf::pojobuf
         sajson::sajson
+        simdjson::simdjson
         test-data::json
     )
     add_custom_target(

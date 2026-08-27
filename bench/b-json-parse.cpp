@@ -8,6 +8,8 @@
 #define SAJSON_UNSORTED_OBJECT_KEYS
 #include <sajson.h>
 
+#include <simdjson.h>
+
 #define PICOBENCH_IMPLEMENT
 #include <picobench/picobench.hpp>
 
@@ -59,6 +61,25 @@ void bench_sajson_0(picobench::state& state) {
     state.set_result(root.get_length());
 }
 
+void bench_simdjson_0(picobench::state& state) {
+    auto& content = get_input(state).content;
+
+    simdjson::dom::document doc;
+    doc.allocate(content.length());
+
+    state.start_timer();
+    simdjson::dom::parser parser;
+    auto root = parser.parse_into_document(doc, content);
+    state.stop_timer();
+
+    if (root.is_object()) {
+        state.set_result(root.get_object().size());
+    }
+    else if (root.is_array()) {
+        state.set_result(root.get_array().size());
+    }
+}
+
 std::string read_file(const char* path) {
     std::ifstream fin(path);
     if (!fin) {
@@ -90,6 +111,7 @@ int main(int argc, char* argv[]) {
         input.fname = sv.data();
 
         input.content = read_file(input.path);
+        simdjson::pad(input.content);
     }
 
     picobench::local_runner r;
@@ -103,6 +125,7 @@ int main(int argc, char* argv[]) {
         add_benchmark("pojobuf-0", bench_pojobuf_0<false>);
         add_benchmark("pojobuf-0 charconv", bench_pojobuf_0<true>);
         add_benchmark("sajson-0", bench_sajson_0);
+        add_benchmark("simdjson-0", bench_simdjson_0);
     }
 
     r.set_compare_results_across_samples(true);
