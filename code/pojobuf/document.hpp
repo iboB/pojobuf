@@ -18,9 +18,9 @@ struct no_buf {
 
 template <typename ByteBuf = no_buf>
 class document {
-    bits::pod_vector m_buffer;
-    ByteBuf m_byte_buf;
-    const char* m_x_byte_ptr;
+    bits::pod_vector m_buffer; // structure (and optionally strings)
+    ByteBuf m_byte_buf; // optional owned string buffer (likely the parsed source)
+    const char* m_x_byte_ptr; // optional external string pointer
     int64_t m_root_payload;
 public:
     document() = default;
@@ -56,6 +56,8 @@ public:
         }
         return *this;
     }
+
+    bool empty() const noexcept { return m_buffer.empty(); }
 
     const bits::pod_vector& buffer() const noexcept { return m_buffer; }
     const ByteBuf& byte_buf() const noexcept { return m_byte_buf; }
