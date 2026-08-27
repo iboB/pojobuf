@@ -45,15 +45,39 @@ void bench_pojobuf_0(picobench::state& state) {
     state.set_result(root.get_compound_length());
 }
 
+void bench_pojobuf_alloc(picobench::state& state) {
+    auto& content = get_input(state).content;
+
+    state.start_timer();
+    auto doc = pojobuf::document_parse<pojobuf::json::parser_custom_num>(content);
+    auto root = doc->root();
+    state.stop_timer();
+
+    state.set_result(root.get_compound_length());
+}
+
 void bench_sajson_0(picobench::state& state) {
-    auto& input = get_input(state);
-    auto content = input.content;
+    auto content = get_input(state).content;
     itlib::pod_vector<size_t> buffer(content.size());
 
     state.start_timer();
     auto doc = sajson::parse(
         sajson::bounded_allocation{buffer.data(), buffer.size()},
         sajson::mutable_string_view(content.size(), content.data())
+    );
+    auto root = doc.get_root();
+    state.stop_timer();
+
+    state.set_result(root.get_length());
+}
+
+void bench_sajson_alloc(picobench::state& state) {
+    auto& content = get_input(state).content;
+
+    state.start_timer();
+    auto doc = sajson::parse(
+        sajson::single_allocation{},
+        sajson::string{content.data(), content.size()}
     );
     auto root = doc.get_root();
     state.stop_timer();
@@ -70,6 +94,22 @@ void bench_simdjson_0(picobench::state& state) {
     state.start_timer();
     simdjson::dom::parser parser;
     auto root = parser.parse_into_document(doc, content);
+    state.stop_timer();
+
+    if (root.is_object()) {
+        state.set_result(root.get_object().size());
+    }
+    else if (root.is_array()) {
+        state.set_result(root.get_array().size());
+    }
+}
+
+void bench_simdjson_alloc(picobench::state& state) {
+    auto& content = get_input(state).content;
+
+    state.start_timer();
+    simdjson::dom::parser parser;
+    auto root = parser.parse(content);
     state.stop_timer();
 
     if (root.is_object()) {
@@ -126,6 +166,9 @@ int main(int argc, char* argv[]) {
         add_benchmark("pojobuf-0 charconv", bench_pojobuf_0<true>);
         add_benchmark("sajson-0", bench_sajson_0);
         add_benchmark("simdjson-0", bench_simdjson_0);
+        add_benchmark("pojobuf-alloc", bench_pojobuf_alloc);
+        add_benchmark("sajson-alloc", bench_sajson_alloc);
+        add_benchmark("simdjson-alloc", bench_simdjson_alloc);
     }
 
     r.set_compare_results_across_samples(true);
