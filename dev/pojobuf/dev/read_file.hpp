@@ -4,6 +4,8 @@
 #pragma once
 #include <filesystem>
 #include <fstream>
+#include <vector>
+#include <string>
 
 namespace pojobuf::dev {
 
@@ -14,6 +16,19 @@ Out read_file(const std::string& path) {
     ret.resize(size);
     std::ifstream in(path, std::ios::binary);
     in.read(ret.data(), size);
+    return ret;
+}
+
+inline std::vector<std::string> read_lines(const std::string& path) {
+    std::vector<std::string> ret;
+    std::ifstream list(path);
+    while (list) {
+        std::string line;
+        std::getline(list, line);
+        if (!line.empty()) {
+            ret.push_back(line);
+        }
+    }
     return ret;
 }
 
