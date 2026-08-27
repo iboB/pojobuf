@@ -287,7 +287,8 @@ void bench_sajson(picobench::state& state) {
 
 int main(int argc, char* argv[]) {
     input inputs[] = {
-        {JSON_TEST_DATA_FILE_client_traffic_txt, }
+        {JSON_TEST_DATA_FILE_client_traffic_txt, },
+        {JSON_TEST_DATA_FILE_client_traffic_rand_txt, },
     };
 
     std::vector<picobench::state::input> pb_inputs;
