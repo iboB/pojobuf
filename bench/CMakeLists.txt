@@ -6,6 +6,9 @@ CPMAddPackage(gh:iboB/picobench@2.10.0)
 include(icm_cpu_arch)
 icm_get_native_arch_flag(nativeArchFlag)
 
+# benchmarking against
+CPMAddPackage("gh:iboB/sajson@1.0.1ibob#eec5b8e")
+
 macro(pojobuf_benchmark name)
     set(tgt bench-pojobuf-${name})
     add_executable(${tgt})
@@ -13,8 +16,10 @@ macro(pojobuf_benchmark name)
     target_sources(${tgt} PRIVATE b-${name}.cpp ${ARGN})
     target_compile_options(${tgt} PRIVATE ${nativeArchFlag})
     target_link_libraries(${tgt} PRIVATE
-        pojobuf::pojobuf
         picobench::picobench
+        pojobuf::pojobuf
+        sajson::sajson
+        test-data::json
     )
     add_custom_target(
         run-${tgt}
@@ -23,3 +28,4 @@ macro(pojobuf_benchmark name)
     set_target_properties(run-${tgt} PROPERTIES FOLDER bench)
 endmacro()
 
+pojobuf_benchmark(json-parse)
