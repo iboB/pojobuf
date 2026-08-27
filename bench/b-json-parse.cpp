@@ -89,7 +89,7 @@ void bench_simdjson_0(picobench::state& state) {
     auto& content = get_input(state).content;
 
     simdjson::dom::document doc;
-    doc.allocate(content.length());
+    std::ignore = doc.allocate(content.length());
 
     state.start_timer();
     simdjson::dom::parser parser;
