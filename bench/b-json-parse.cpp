@@ -13,8 +13,8 @@
 #define PICOBENCH_IMPLEMENT
 #include <picobench/picobench.hpp>
 
+#include <pojobuf/dev/read_file.hpp>
 #include <json-test-data.h>
-#include <fstream>
 #include <string>
 
 struct input {
@@ -120,15 +120,6 @@ void bench_simdjson_alloc(picobench::state& state) {
     }
 }
 
-std::string read_file(const char* path) {
-    std::ifstream fin(path);
-    if (!fin) {
-        throw std::runtime_error("Failed to open file: " + std::string(path));
-    }
-    std::string content((std::istreambuf_iterator<char>(fin)), std::istreambuf_iterator<char>());
-    return content;
-}
-
 int main(int argc, char* argv[]) {
     //const char* files[] = { JSON_TEST_DATA_JSON_FILES };
     // let's only benchmark the longer files
@@ -150,7 +141,7 @@ int main(int argc, char* argv[]) {
         }
         input.fname = sv.data();
 
-        input.content = read_file(input.path);
+        input.content = pojobuf::dev::read_file(input.path);
         simdjson::pad(input.content);
     }
 

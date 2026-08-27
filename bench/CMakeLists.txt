@@ -21,6 +21,7 @@ macro(pojobuf_benchmark name)
         pojobuf::pojobuf
         sajson::sajson
         simdjson::simdjson
+        pojobuf::dev
         test-data::json
     )
     add_custom_target(
@@ -31,3 +32,4 @@ macro(pojobuf_benchmark name)
 endmacro()
 
 pojobuf_benchmark(json-parse)
+pojobuf_benchmark(traverse)
