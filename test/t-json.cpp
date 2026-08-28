@@ -155,6 +155,7 @@ void t(std::string_view json, uint32_t flags = test_flags_default, std::optional
     }
 
     // test write
+
     if (!(flags & skip_dump_compare)) {
         std::string pb_out;
         pojobuf::container_string_sink sink(pb_out);

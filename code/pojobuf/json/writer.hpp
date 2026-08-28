@@ -4,6 +4,7 @@
 #pragma once
 #include "limits.hpp"
 #include "../pl_tag.hpp"
+#include "../invalid_value_strategy.hpp"
 #include "../bits/charconv.hpp"
 #include <itlib/small_vector.hpp>
 #include <concepts>
@@ -33,7 +34,7 @@ std::string_view escape_utf8_byte(char c) {
 }
 } // namespace util
 
-template <typename StringSink, bool GuardNumberValues = false>
+template <typename StringSink, invalid_value_strategy InvalidNumStrategy = invalid_value_strategy::no_check>
 class writer {
     bool m_has_value = false;
     bool m_has_added_key = false; // only through builder compat functions
@@ -59,7 +60,8 @@ public:
     explicit writer(StringSink& sink, bool pretty = false)
         : m_compact_depth(pretty ? uint32_t(-1) : 0)
         , sink(sink)
-    {}
+    {
+    }
 
     uint32_t cur_depth() const noexcept {
         return uint32_t(m_compound_stack.size());
@@ -168,16 +170,28 @@ public:
         }
     }
 
+    static constexpr bool validate_numbers() {
+        return InvalidNumStrategy != invalid_value_strategy::no_check;
+    }
+
+    bool write_invalid_num() {
+        if constexpr (InvalidNumStrategy == invalid_value_strategy::null) {
+            prepare_for_val();
+            add_literal_element<pl_tag::null>();
+        }
+        return false;
+    }
+
     template <std::integral I>
     bool add_number_element(I i) {
-        if constexpr (GuardNumberValues && sizeof(I) > 4) { // all ints of 32 bits and below fit a double
+        if constexpr (validate_numbers() && sizeof(I) > 4) { // all ints of 32 bits and below fit a double
             if constexpr (std::is_signed_v<I>) {
                 if (i < min_int64 || i > max_int64) {
-                    return false;
+                    return write_invalid_num();
                 }
             }
             else if (i > max_uint64) {
-                return false;
+                return write_invalid_num();
             }
         }
 
@@ -213,9 +227,9 @@ public:
 
     template <std::floating_point F>
     bool add_number_element(F f) {
-        if constexpr (GuardNumberValues) {
+        if constexpr (validate_numbers()) {
             if (!std::isfinite(f)) {
-                return false;
+                return write_invalid_num();
             }
         }
 
