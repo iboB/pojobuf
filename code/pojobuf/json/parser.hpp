@@ -445,7 +445,7 @@ class t_parser : public t_parser_base {
         }
     found:
         if (*p == '"') [[likely]] {
-            out_range = m_builder.abyte.push_internal_string(begin, p);
+            out_range = m_builder.push_internal_string(begin, p);
             return p + 1;
         }
 
@@ -476,7 +476,7 @@ class t_parser : public t_parser_base {
         return p;
     }
 
-    void write_utf8(unsigned codepoint, typename Builder::byte_alloc_t::piecewise_string_builder& psb) {
+    void write_utf8(unsigned codepoint, typename Builder::piecewise_string_builder& psb) {
         if (codepoint < 0x80) {
             psb.push(codepoint & 0xFF);
         }
@@ -499,7 +499,7 @@ class t_parser : public t_parser_base {
     }
 
     const char* parse_string_slow(const char* p, buffer_range& out_range, const char* const begin) {
-        auto psb = m_builder.abyte.get_piecewise_string_builder(begin, p);
+        auto psb = m_builder.get_piecewise_string_builder(begin, p);
         const char* input_end_local = m_text_end;
 
         for (;;) {
@@ -513,7 +513,7 @@ class t_parser : public t_parser_base {
 
             switch (*p) {
             case '"':
-                out_range = m_builder.abyte.push_string(psb);
+                out_range = m_builder.push_string(psb);
                 return p + 1;
 
             case '\\':

@@ -117,6 +117,21 @@ public:
         return adata.get_cur_payload();
     }
 
+
+    using piecewise_string_builder = typename ByteAlloc::piecewise_string_builder;
+    FORCE_INLINE buffer_range push_string(const char* begin, const char* end) {
+        return abyte.push_string(begin, end);
+    }
+    FORCE_INLINE buffer_range push_internal_string(const char* begin, const char* end) {
+        return abyte.push_internal_string(begin, end);
+    }
+    FORCE_INLINE piecewise_string_builder get_piecewise_string_builder(const char* simple_begin, const char* begin) {
+        return abyte.get_piecewise_string_builder(simple_begin, begin);
+    }
+    FORCE_INLINE buffer_range push_string(const piecewise_string_builder& psb) noexcept {
+        return abyte.push_string(psb);
+    }
+
 private:
 
     template <pl_tag Tag>
@@ -311,7 +326,7 @@ public:
         const int64_t length = end - begin;
 
         if (length == 0) [[unlikely]] {
-            return buffer_range{ begin_offset, begin_offset };
+            return buffer_range{begin_offset, begin_offset};
         }
 
         const auto value_length = bits::divide_round_up(length, int64_t(sizeof(int64_t)));
