@@ -413,7 +413,7 @@ void bench_simdjson(picobench::state& state) {
     docs.reserve(lines.size());
     for (auto& l : lines) {
         auto& doc = docs.emplace_back();
-        doc.allocate(l.size());
+        std::ignore = doc.allocate(l.size());
         p.parse_into_document(doc, l);
     }
 
