@@ -5,6 +5,7 @@
 #include <pojobuf/docbuild.hpp>
 #include <pojobuf/json/parser.hpp>
 #include <pojobuf/json/util.hpp>
+#include <pojobuf/json/writer.hpp>
 #include <iostream>
 #include <vector>
 

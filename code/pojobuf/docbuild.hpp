@@ -317,7 +317,7 @@ public:
         const auto value_length = bits::divide_round_up(length, int64_t(sizeof(int64_t)));
         auto ptr = m_data_alloc.alloc_value(value_length);
         std::memcpy(ptr, begin, length);
-        return buffer_range{ begin_offset, begin_offset + length };
+        return buffer_range{begin_offset, begin_offset + length};
     }
 
     buffer_range push_internal_string(const char* begin, const char* end) {
