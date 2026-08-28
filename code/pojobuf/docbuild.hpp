@@ -117,7 +117,6 @@ public:
         return adata.get_cur_payload();
     }
 
-
     using piecewise_string_builder = typename ByteAlloc::piecewise_string_builder;
     FORCE_INLINE buffer_range push_string(const char* begin, const char* end) {
         return abyte.push_string(begin, end);

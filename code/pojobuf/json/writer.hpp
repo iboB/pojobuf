@@ -213,7 +213,7 @@ public:
             sink.add('{');
         }
         else {
-            static_asserT(Tag == pl_tag::array, "unsupported compound element");
+            static_assert(Tag == pl_tag::array, "unsupported compound element");
         }
 
         m_has_value = false;
@@ -241,7 +241,7 @@ public:
             sink.add('}');
         }
         else {
-            static_asserT(Tag == pl_tag::array, "unsupported compound element");
+            static_assert(Tag == pl_tag::array, "unsupported compound element");
         }
 
         m_has_value = true;
@@ -265,7 +265,6 @@ public:
     }
 
     // parser compat
-
     void add_string_element(const buffer_range&) {
         // nothing to do here since the job has been done by push_string
     }
