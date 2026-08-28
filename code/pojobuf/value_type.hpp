@@ -8,24 +8,25 @@ namespace pojobuf {
 
 struct value_type {
     enum e : uint32_t {
-        undefined =       0b001,
-        null      =       0b010,
-        custom    =       0b100,
-        false_ =        0b01000,
-        true_  =        0b10000,
-        int32  =     0b00100000,
-        int64  =     0b01000000,
-        real   =     0b10000000,
-        string =   0b0100000000,
-        blob   =   0b1000000000,
-        array  =  0b10000000000,
-        object = 0b100000000000,
+        undefined =      0b001,
+        null      =      0b010,
+        false_ =        0b0100,
+        true_  =        0b1000,
+        int32  =     0b0010000,
+        int64  =     0b0100000,
+        real   =     0b1000000,
+        string =   0b010000000,
+        blob   =   0b100000000,
+        array  =  0b1000000000,
+        object = 0b10000000000,
 
         // object whose keys are sorted, so we can do binary search on them
         // this is a bit of a special snowflake as it's the only possible value of a type
         // that has two bits set
         // keep this in mind when switching by type
         sorted_object = (object << 1) | object,
+
+        custom = object << 2,
     };
 
     e t;

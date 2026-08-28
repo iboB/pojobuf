@@ -8,7 +8,7 @@
 
 namespace pojobuf {
 
-enum class pl_tag : uint32_t {
+enum class pl_tag : uint8_t {
     null,
     false_,
     true_,
@@ -20,6 +20,8 @@ enum class pl_tag : uint32_t {
     array,
     object,
     sorted_object,
+
+    custom // keep last
 };
 constexpr uint32_t operator*(pl_tag t) {
     return uint32_t(t);
@@ -29,7 +31,7 @@ constexpr uint32_t operator*(pl_tag t) {
 // since we use uint64_t for elements, this gives us 60 bits for the offset, which is plenty
 // see sajson-notes.md for more about this
 inline constexpr uint32_t pl_tag_bits = 4;
-static_assert(*pl_tag::sorted_object < (1 << pl_tag_bits));
+static_assert(*pl_tag::custom < (1 << pl_tag_bits));
 
 static constexpr value_type get_type_from_pl_tag(pl_tag t) {
     switch (t) {
@@ -44,6 +46,7 @@ static constexpr value_type get_type_from_pl_tag(pl_tag t) {
     case pl_tag::array: return value_type::array;
     case pl_tag::object: return value_type::object;
     case pl_tag::sorted_object: return value_type::sorted_object;
+    case pl_tag::custom: return value_type::custom;
     }
     SPLAT_UNREACHABLE();
 }
