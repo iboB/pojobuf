@@ -2,6 +2,9 @@
 #include <pojobuf/document.parse.hpp>
 #include <pojobuf/json/parser.hpp>
 
+#include <boost/json.hpp>
+#include <boost/container/pmr/monotonic_buffer_resource.hpp>
+
 #define SAJSON_UNSORTED_OBJECT_KEYS
 #include <sajson.h>
 
@@ -345,10 +348,103 @@ hash_t traverse(const simdjson::dom::element& elem) {
     return res;
 }
 
+/////////////////////////////////
+// boost
+
+vec read_vec(boost::json::object& obj) {
+    vec v;
+    v.x = int(obj["x"].as_int64());
+    v.y = int(obj["y"].as_int64());
+    v.z = int(obj["z"].as_int64());
+    return v;
+}
+
+hash_t check_ack(boost::json::object& obj) {
+    auto it = obj.find("ack");
+    if (it == obj.end()) return 0;
+    return it->value().as_int64();
+}
+
+hash_t check_setSubscriptions(boost::json::object& obj) {
+    auto it = obj.find("setSubscriptions");
+    if (it == obj.end()) return 0;
+    hash_t res = 0;
+    auto subobj = it->value().as_object();
+    for (auto& kv : subobj) {
+        res += hash(kv.key());
+        res += hash(kv.value().as_string());
+    }
+    return res;
+}
+
+hash_t check_setRequestBatch(boost::json::object& obj) {
+    auto it = obj.find("setRequestBatch");
+    if (it == obj.end()) return 0;
+    hash_t res = 0;
+    auto batchobj = it->value().as_object();
+    {
+        std::string_view batchId = batchobj["batchID"].as_string();
+        res += hash(batchId);
+    }
+    auto reqs = batchobj["requests"].as_object();
+    for (auto& reqv : reqs) {
+        auto req = reqv.value().as_object();
+        {
+            auto minobj = req["min"].as_object();
+            res += read_vec(minobj).sum();
+        }
+        {
+            auto maxobj = req["max"].as_object();
+            res += read_vec(maxobj).sum();
+        }
+    }
+    return res;
+}
+
+hash_t check_ping(boost::json::object& obj) {
+    auto it = obj.find("ping");
+    if (it == obj.end()) return 0;
+    auto pingobj = it->value().as_object();
+    std::string_view pl = pingobj["payload"].as_string();
+    return hash(pl);
+}
+
+hash_t check_setInteraction(boost::json::object& obj) {
+    auto it = obj.find("setInteraction");
+    if (it == obj.end()) return 0;
+    hash_t res = 0;
+    auto interobj = it->value().as_object();
+    std::string_view type = interobj["type"].as_string();
+    if (type != "PlanarDrag_World") return 42;
+    bool done = interobj["done"].as_bool();
+    bool confirm = interobj["confirm"].as_bool();
+    res += done + confirm;
+    std::string_view tool = interobj["tool"].as_string();
+    res += hash(tool);
+    int id = int(interobj["id"].as_int64());
+    int seq = int(interobj["seq"].as_int64());
+    res += id + seq;
+    auto structures = interobj["structures"].as_array();
+    for (auto& sv : structures) {
+        std::string_view sid = sv.as_string();
+        res += hash(sid);
+    }
+    return res;
+}
+
+hash_t traverse(boost::json::value& val) {
+    auto obj = val.as_object();
+    hash_t res = 0;
+    res += check_ack(obj);
+    res += check_setSubscriptions(obj);
+    res += check_setRequestBatch(obj);
+    res += check_ping(obj);
+    res += check_setInteraction(obj);
+    return res;
+}
 
 /////////////////////////////////
 // benchmarks
-
 
 void bench_pojobuf(picobench::state& state) {
     auto& lines = get_input(state).lines;
@@ -408,6 +504,22 @@ void bench_sajson(picobench::state& state) {
 
 void bench_simdjson(picobench::state& state) {
     auto& lines = get_input(state).lines;
+    std::vector<boost::json::value> roots;
+    roots.reserve(lines.size());
+    for (auto& l : lines) {
+        roots.push_back(boost::json::parse(l));
+    }
+
+    hash_t sum = 0;
+    for (auto i : state) {
+        sum += traverse(roots[i]);
+    }
+
+    state.set_result(sum);
+}
+
+void bench_boost(picobench::state& state) {
+    auto& lines = get_input(state).lines;
     std::vector<simdjson::dom::document> docs;
     simdjson::dom::parser p;
     docs.reserve(lines.size());
@@ -448,6 +560,7 @@ int main(int argc, char* argv[]) {
     r.add_benchmark("pojobuf+str", bench_pojobuf_sep_string).inputs(pb_inputs);
     r.add_benchmark("sajson", bench_sajson).inputs(pb_inputs);
     r.add_benchmark("simdjson", bench_simdjson).inputs(pb_inputs);
+    r.add_benchmark("boost", bench_boost).inputs(pb_inputs);
 
     r.set_compare_results_across_samples(true);
     r.set_compare_results_across_benchmarks(true);
