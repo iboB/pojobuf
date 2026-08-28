@@ -266,6 +266,27 @@ void bench_pojobuf(picobench::state& state) {
     state.set_result(sum);
 }
 
+void bench_pojobuf_sep_string(picobench::state& state) {
+    auto& lines = get_input(state).lines;
+    std::vector<pojobuf::document<std::string>> docs;
+    docs.reserve(lines.size());
+    for (auto& l : lines) {
+        docs.emplace_back(
+            *pojobuf::document_parse_with<
+                pojobuf::json::parser_custom_num,
+                pojobuf::parse_alloc_strategy::take_source
+            >(std::string(l))
+        );
+    }
+
+    hash_t sum = 0;
+    for (auto i : state) {
+        sum += traverse(docs[i].root());
+    }
+
+    state.set_result(sum);
+}
+
 void bench_sajson(picobench::state& state) {
     auto& lines = get_input(state).lines;
     std::vector<sajson::document> docs;
@@ -302,6 +323,7 @@ int main(int argc, char* argv[]) {
     picobench::local_runner r;
 
     r.add_benchmark("pojobuf", bench_pojobuf).inputs(pb_inputs);
+    r.add_benchmark("pojobuf+str", bench_pojobuf).inputs(pb_inputs);
     r.add_benchmark("sajson", bench_sajson).inputs(pb_inputs);
 
     r.set_compare_results_across_samples(true);
