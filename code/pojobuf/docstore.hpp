@@ -25,6 +25,7 @@ struct object_elem {
 };
 static_assert(sizeof(object_elem) == object_elem::num_fields * sizeof(int64_t));
 
+// only used in sorted objects
 struct object_key_cmp {
     const char* byte_ptr;
 

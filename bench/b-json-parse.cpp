@@ -108,8 +108,10 @@ void bench_simdjson_alloc(picobench::state& state) {
     auto& content = get_input(state).content;
 
     state.start_timer();
+    simdjson::dom::document doc;
     simdjson::dom::parser parser;
-    auto root = parser.parse(content);
+    std::ignore = doc.allocate(content.length());
+    auto root = parser.parse_into_document(doc, content);
     state.stop_timer();
 
     if (root.is_object()) {
