@@ -12,6 +12,8 @@ public:
     Container& container;
 
     explicit container_string_sink(Container& c)
+        : container(c)
+    {}
 
     void add(char c) {
         container.push_back(c);

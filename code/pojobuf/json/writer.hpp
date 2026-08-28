@@ -5,6 +5,7 @@
 #include "limits.hpp"
 #include "../pl_tag.hpp"
 #include "../bits/charconv.hpp"
+#include <itlib/small_vector.hpp>
 #include <concepts>
 #include <type_traits>
 #include <string_view>
@@ -35,41 +36,66 @@ std::string_view escape_utf8_byte(char c) {
 template <typename StringSink, bool GuardNumberValues = false>
 class writer {
     bool m_has_value = false;
-    uint32_t m_cur_depth = 0;
-    uint32_t m_compact_depth = 0;
+    bool m_has_added_key = false; // only through builder compat functions
+    itlib::small_vector<uint8_t, 32> m_compound_stack;
+    uint32_t m_compact_depth;
     std::string_view m_pending_key = {};
 
     void add_new_line(bool close) const {
         if (!cur_depth_is_pretty()) return;
-        const auto indent = m_cur_depth - close;
+        const auto indent = cur_depth() - close;
         if (indent == 0 && !m_has_value) return; // no new line for initial value
 
         // TODO: configurable new line and indent string
         sink.add('\n');
         static constexpr std::string_view tab = "  ";
-        for (uint32_t i = 0; i < m_cur_depth; ++i) {
+        for (uint32_t i = 0; i < indent; ++i) {
             sink.add(tab);
         }
     }
 public:
     StringSink& sink;
 
-    uint32_t depth() const noexcept { return m_cur_depth; }
+    explicit writer(StringSink& sink, bool pretty = false)
+        : m_compact_depth(pretty ? uint32_t(-1) : 0)
+        , sink(sink)
+    {}
 
-    void inc_depth() noexcept { ++m_cur_depth; }
-    void dec_depth() noexcept {
-        if (m_compact_depth == m_cur_depth) {
+    uint32_t cur_depth() const noexcept {
+        return uint32_t(m_compound_stack.size());
+    }
+
+    void push_stack(uint8_t t) {
+        m_compound_stack.push_back(t);
+    }
+    void pop_sack() noexcept {
+        if (m_compact_depth == cur_depth()) {
             m_compact_depth = uint32_t(-1);
         }
-        --m_cur_depth;
+        m_compound_stack.pop_back();
+    }
+
+    bool current_compound_is_root() {
+        return m_compound_stack.empty();
+    }
+
+    bool current_compound_is_array() {
+        return m_compound_stack.back() == *pl_tag::array;
+    }
+
+    bool current_compound_is_object() {
+        auto back = m_compound_stack.back();
+        return back == *pl_tag::object || back == *pl_tag::sorted_object;
     }
 
     void set_render_compact() {
         if (cur_depth_is_pretty()) {
-            m_compact_depth = m_cur_depth;
+            m_compact_depth = cur_depth();
         }
     }
-    bool cur_depth_is_pretty() const noexcept { return m_cur_depth < m_compact_depth; }
+    bool cur_depth_is_pretty() const noexcept {
+        return cur_depth() < m_compact_depth;
+    }
 
     void write_escaped_utf8_string(std::string_view str) {
         // we could use this simple code here
@@ -131,7 +157,7 @@ public:
         if constexpr (Tag == pl_tag::null) {
             sink.add("null", 4);
         }
-        else if constexpr (Tag == pl_tag::true_) {
+        else if constexpr (Tag == pl_tag::false_) {
             sink.add("false", 5);
         }
         else if constexpr (Tag == pl_tag::true_) {
@@ -202,6 +228,11 @@ public:
         return true;
     }
 
+    void add_string_element(std::string_view str) {
+        prepare_for_val();
+        write_quoted_escaped_ut8_string(str);
+    }
+
     template <pl_tag Tag>
     void open_compound_element() {
         prepare_for_val();
@@ -217,7 +248,7 @@ public:
         }
 
         m_has_value = false;
-        inc_depth();
+        push_stack(uint8_t(Tag));
     }
 
     void add_object_key(std::string_view str) {
@@ -245,10 +276,15 @@ public:
         }
 
         m_has_value = true;
-        dec_depth();
+        pop_sack();
     }
 
     void prepare_for_val() {
+        if (m_has_added_key) {
+            m_has_added_key = false;
+            return;
+        }
+
         if (m_has_value) {
             sink.add(',');
         }
@@ -265,12 +301,49 @@ public:
     }
 
     // parser compat
+    buffer_range push_string(const char* begin, const char* end) {
+        prepare_for_val();
+        write_quoted_escaped_ut8_string({begin, end});
+        return {};
+    }
+    buffer_range push_internal_string(const char* begin, const char* end) {
+        prepare_for_val();
+        sink.add('"');
+        sink.add(begin, end);
+        sink.add('"');
+        return {};
+    }
+
+    struct piecewise_string_builder {
+        StringSink& sink;
+        void push(char c) {
+            auto e = util::escape_utf8_byte(c);
+            if (e.data()) {
+                sink.add(e);
+            }
+            else {
+                sink.add(c);
+            }
+        }
+    };
+    piecewise_string_builder get_piecewise_string_builder(const char* simple_begin, const char* begin) {
+        prepare_for_val();
+        sink.add('"');
+        sink.add(simple_begin, begin);
+        return piecewise_string_builder{sink};
+    }
+    buffer_range push_string(const piecewise_string_builder& psb) noexcept {
+        sink.add('"');
+        return {};
+    }
+
     void add_string_element(const buffer_range&) {
         // nothing to do here since the job has been done by push_string
     }
     void add_object_key(const buffer_range&) {
         // the string itself has been added by push_string
         sink.add(':');
+        m_has_added_key = true;
     }
 };
 

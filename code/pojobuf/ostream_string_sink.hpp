@@ -11,7 +11,9 @@ class ostream_string_sink {
 public:
     Stream& stream;
 
-    explicit container_string_sink(Container& c)
+    explicit ostream_string_sink(Stream& s)
+        : stream(s)
+    {}
 
     void add(char c) {
         stream.rdbuf()->sputc(c);
@@ -20,7 +22,7 @@ public:
         add(begin, end - begin);
     }
     void add(const char* begin, size_t size) {
-        stream.rdbuf().sputn(begin, size);
+        stream.rdbuf()->sputn(begin, size);
     }
     void add(std::string_view sv) {
         add(sv.data(), sv.size());
