@@ -250,6 +250,106 @@ hash_t traverse(const sajson::value& val) {
     return res;
 }
 
+/////////////////////////////////
+// simdjson
+
+vec read_vec(simdjson::dom::object& obj) {
+    vec v;
+    v.x = int(obj.at_key("x").get_int64().value_unsafe());
+    v.y = int(obj.at_key("y").get_int64().value_unsafe());
+    v.z = int(obj.at_key("z").get_int64().value_unsafe());
+    return v;
+}
+
+hash_t check_ack(simdjson::dom::object& obj) {
+    auto ack = obj.at_key("ack");
+    if (ack.error()) return 0;
+    return ack.get_int64().value_unsafe();
+}
+
+hash_t check_setSubscriptions(simdjson::dom::object& obj) {
+    auto subs = obj.at_key("setSubscriptions");
+    if (subs.error()) return 0;
+    hash_t res = 0;
+    auto subobj = subs.get_object().value_unsafe();
+    for (auto& field : subobj) {
+        res += hash(field.key);
+        res += hash(field.value.get_string().value_unsafe());
+    }
+    return res;
+}
+
+hash_t check_setRequestBatch(simdjson::dom::object& obj) {
+    auto batch = obj.at_key("setRequestBatch");
+    if (batch.error()) return 0;
+    hash_t res = 0;
+    auto batchobj = batch.get_object().value_unsafe();
+    {
+        std::string_view batchId = batchobj.at_key("batchID").get_string().value_unsafe();
+        res += hash(batchId);
+    }
+    auto reqs = batchobj.at_key("requests").get_object().value_unsafe();
+    for (auto& reqfield : reqs) {
+        auto req = reqfield.value.get_object().value_unsafe();
+        {
+            auto minobj = req.at_key("min").get_object().value_unsafe();
+            res += read_vec(minobj).sum();
+        }
+        {
+            auto maxobj = req.at_key("max").get_object().value_unsafe();
+            res += read_vec(maxobj).sum();
+        }
+    }
+    return res;
+}
+
+hash_t check_ping(simdjson::dom::object& obj) {
+    auto ping = obj.at_key("ping");
+    if (ping.error()) return 0;
+    auto pingobj = ping.get_object().value_unsafe();
+    std::string_view pl = pingobj.at_key("payload").get_string().value_unsafe();
+    return hash(pl);
+}
+
+hash_t check_setInteraction(simdjson::dom::object& obj) {
+    auto inter = obj.at_key("setInteraction");
+    if (inter.error()) return 0;
+    hash_t res = 0;
+    auto interobj = inter.get_object().value_unsafe();
+    std::string_view type = interobj.at_key("type").get_string().value_unsafe();
+    if (type != "PlanarDrag_World") return 42;
+    bool done = interobj.at_key("done").get_bool().value_unsafe();
+    bool confirm = interobj.at_key("confirm").get_bool().value_unsafe();
+    res += done + confirm;
+    std::string_view tool = interobj.at_key("tool").get_string().value_unsafe();
+    res += hash(tool);
+    int id = int(interobj.at_key("id").get_int64().value_unsafe());
+    int seq = int(interobj.at_key("seq").get_int64().value_unsafe());
+    res += id + seq;
+    auto structures = interobj.at_key("structures").get_array().value_unsafe();
+    for (auto sv : structures) {
+        std::string_view sid = sv.get_string().value_unsafe();
+        res += hash(sid);
+    }
+    return res;
+}
+
+hash_t traverse(const simdjson::dom::element& elem) {
+    auto obj = elem.get_object().value_unsafe();
+    hash_t res = 0;
+    res += check_ack(obj);
+    res += check_setSubscriptions(obj);
+    res += check_setRequestBatch(obj);
+    res += check_ping(obj);
+    res += check_setInteraction(obj);
+    return res;
+}
+
+
+/////////////////////////////////
+// benchmarks
+
+
 void bench_pojobuf(picobench::state& state) {
     auto& lines = get_input(state).lines;
     std::vector<pojobuf::document<>> docs;
@@ -306,6 +406,25 @@ void bench_sajson(picobench::state& state) {
     state.set_result(sum);
 }
 
+void bench_simdjson(picobench::state& state) {
+    auto& lines = get_input(state).lines;
+    std::vector<simdjson::dom::document> docs;
+    simdjson::dom::parser p;
+    docs.reserve(lines.size());
+    for (auto& l : lines) {
+        auto& doc = docs.emplace_back();
+        doc.allocate(l.size());
+        p.parse_into_document(doc, l);
+    }
+
+    hash_t sum = 0;
+    for (auto i : state) {
+        sum += traverse(docs[i].root());
+    }
+
+    state.set_result(sum);
+}
+
 int main(int argc, char* argv[]) {
     input inputs[] = {
         {JSON_TEST_DATA_FILE_client_traffic_txt, },
@@ -317,14 +436,18 @@ int main(int argc, char* argv[]) {
 
     for (auto& i : inputs) {
         i.lines = pojobuf::dev::read_lines(i.path);
+        for (auto& l : i.lines) {
+            simdjson::pad(l);
+        }
         pb_inputs.push_back({int(i.lines.size()), reinterpret_cast<uintptr_t>(&i)});
     }
 
     picobench::local_runner r;
 
     r.add_benchmark("pojobuf", bench_pojobuf).inputs(pb_inputs);
-    r.add_benchmark("pojobuf+str", bench_pojobuf).inputs(pb_inputs);
+    r.add_benchmark("pojobuf+str", bench_pojobuf_sep_string).inputs(pb_inputs);
     r.add_benchmark("sajson", bench_sajson).inputs(pb_inputs);
+    r.add_benchmark("simdjson", bench_simdjson).inputs(pb_inputs);
 
     r.set_compare_results_across_samples(true);
     r.set_compare_results_across_benchmarks(true);
