@@ -332,7 +332,7 @@ public:
         sink.add(simple_begin, begin);
         return piecewise_string_builder{sink};
     }
-    buffer_range push_string(const piecewise_string_builder& psb) noexcept {
+    buffer_range push_string(const piecewise_string_builder&) noexcept {
         sink.add('"');
         return {};
     }
