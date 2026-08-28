@@ -8,6 +8,8 @@
 #include <pojobuf/document.parse.hpp>
 #include <pojobuf/json/parser.hpp>
 #include <pojobuf/json/util.hpp>
+#include <pojobuf/container_string_sink.hpp>
+#include <pojobuf/json/writer.hpp>
 #include <pojobuf/bits/pod_vector.hpp>
 
 #include <doctest/doctest.h>
@@ -93,6 +95,7 @@ void rcmp(pojobuf::value val, const nljson& oracle) {
 enum test_flags : uint32_t {
     precise_real_values = 0b01,
     also_sort_objects   = 0b10,
+    skip_dump_compare  = 0b100,
 
     test_flags_default = 0,
 };
@@ -106,7 +109,7 @@ pojobuf::value parse_and_get_root(std::string_view json, Builder& builder) {
     return pojobuf::value(pl, builder.adata.get_value_buffer_ptr(), builder.abyte.get_byte_ptr());
 }
 
-void t(std::string_view json, uint32_t flags = test_flags_default) {
+void t(std::string_view json, uint32_t flags = test_flags_default, std::optional<std::string_view> expected_dump = {}) {
     const auto oracle = nljson::parse(json);
 
     pojobuf::bits::pod_vector buf(pojobuf::json::get_buffer_size_for_json(json));
@@ -150,6 +153,22 @@ void t(std::string_view json, uint32_t flags = test_flags_default) {
         REQUIRE(result);
         rcmp(result->root(), oracle);
     }
+
+    // test write
+    if (!(flags & skip_dump_compare)) {
+        std::string pb_out;
+        pojobuf::container_string_sink sink(pb_out);
+        pojobuf::json::writer writer(sink);
+        pojobuf::json::parser_charconv_num::parse(json, writer);
+
+        if (expected_dump) {
+            CHECK(pb_out == *expected_dump);
+        }
+        else {
+            const auto o_out = oracle.dump();
+            CHECK(pb_out == o_out);
+        }
+    }
 }
 
 TEST_CASE("successful parse and traverse") {
@@ -174,9 +193,13 @@ TEST_CASE("successful parse and traverse") {
     t("[0,[0,[0],0],0]");
     t("[-2147483648, 2147483647, -2147483649, 2147483648]");
     t(R"({"ar": [2.5, -5], "val": 5, "b": false, "str": "hello world"})", also_sort_objects);
-    t(R"([1, "hello", -5, 0.25, 1e2, 2.5e-1, 9, {"key": "value", "another_key": 42}, false])", also_sort_objects);
+    t(
+        R"([1, "hello", -5, 0.25, 1e2, 2.5e-01, 9, {"key": "value", "another_key": 42}, false])",
+        also_sort_objects,
+        R"([1,"hello",-5,0.25,100,0.25,9,{"key":"value","another_key":42},false])"
+    );
     t(R"([
-        "easy",    1, -3, -0.25, 1e-10, 1e60, 1e-120,
+        "easy",    1, -3, -0.25, 1e-010, 1e60, 1e-120,
         "tricky",  1.65, 0.3, 0.333, 3.141592, 3e-121,
         "xtricky", 27.900001108646396, 0.9689776221127033
     ])", precise_real_values);
@@ -205,7 +228,11 @@ TEST_CASE("successful parse and traverse") {
         "\"\\/\b\f\n\r\t",
         "\ud950\uDf21\n"
     ])");
-    t("[3.141592, 4e4, 5.1e-5, 0.3e+2]", precise_real_values);
+    t(
+        "[3.141592, 4e4, 5.1e-5, 0.3e+2]",
+        precise_real_values,
+        "[3.141592,40000,5.1e-05,30]"
+    );
 
 
     auto str = pojobuf::dev::read_file(JSON_TEST_DATA_FILE_github_events_json);
