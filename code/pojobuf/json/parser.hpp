@@ -12,7 +12,7 @@
 #include <itlib/expected.hpp>
 
 #include <limits>
-#include <csetjmp>
+//#include <csetjmp>
 #include <string_view>
 
 #include <splat/inline.h>
@@ -134,7 +134,7 @@ class t_parser : public t_parser_base {
         "piecewise_string_builder must be trivially destructible in a longjmp context");
 
     // error handlng
-    jmp_buf m_jmpbuf; // error handling jump buf
+    //jmp_buf m_jmpbuf; // error handling jump buf
     const char* m_error_location;
     errc m_error_code;
     std::string_view m_error_arg;
@@ -143,7 +143,8 @@ class t_parser : public t_parser_base {
         m_error_location = p;
         m_error_code = code;
         m_error_arg = arg;
-        longjmp(m_jmpbuf, 1);
+        //longjmp(m_jmpbuf, 1);
+        std::terminate();
     }
 
     const char* skip_whitespace(const char* p) noexcept {
@@ -823,13 +824,13 @@ public:
 
     itlib::expected<const char*, parse_error> parse() {
         // init error handling
-        if (setjmp(m_jmpbuf) > 0) {
-            return itlib::unexpected(parse_error::create(
-                "pojobuf::json",
-                m_error_code, std::string(m_error_arg),
-                m_text_begin, m_error_location
-            ));
-        }
+        //if (setjmp(m_jmpbuf) > 0) {
+        //    return itlib::unexpected(parse_error::create(
+        //        "pojobuf::json",
+        //        m_error_code, std::string(m_error_arg),
+        //        m_text_begin, m_error_location
+        //    ));
+        //}
 
         // call a noinline function to keep parsing out of a "returns twice" context
         return do_parse();
