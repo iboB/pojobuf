@@ -502,7 +502,7 @@ void bench_sajson(picobench::state& state) {
     state.set_result(sum);
 }
 
-void bench_simdjson(picobench::state& state) {
+void bench_boost(picobench::state& state) {
     auto& lines = get_input(state).lines;
     std::vector<boost::json::value> roots;
     roots.reserve(lines.size());
@@ -518,7 +518,7 @@ void bench_simdjson(picobench::state& state) {
     state.set_result(sum);
 }
 
-void bench_boost(picobench::state& state) {
+void bench_simdjson(picobench::state& state) {
     auto& lines = get_input(state).lines;
     std::vector<simdjson::dom::document> docs;
     simdjson::dom::parser p;
