@@ -560,9 +560,6 @@ class t_parser : public t_parser_base {
                     unsigned u = 0; // gcc's complaining that this could be used
                                     // uninitialized. wrong.
                     p = read_hex(p, u);
-                    if (!p) {
-                        return 0;
-                    }
                     if (u >= 0xD800 && u <= 0xDBFF) {
                         if (!has_remaining_characters(p, 6)) [[unlikely]] {
                             fail(p, errc::invalid_, "utf16");
@@ -576,9 +573,6 @@ class t_parser : public t_parser_base {
                         unsigned v = 0; // gcc's complaining that this could be
                                         // used uninitialized. wrong.
                         p = read_hex(p, v);
-                        if (!p) {
-                            return p;
-                        }
 
                         if (v < 0xDC00 || v > 0xDFFF) {
                             fail(p, errc::invalid_, "utf16");
@@ -714,9 +708,6 @@ public:
             }
 
             p = skip_whitespace(p);
-            if (!p) [[unlikely]] {
-                fail(p, errc::unexpected_end);
-            }
 
             if (m_builder.current_compound_is_array()) {
                 if (*p == ']') {
