@@ -22,7 +22,7 @@
 using nljson = nlohmann::ordered_json;
 
 void rcmp(pojobuf::value val, const nljson& oracle) {
-    using enum pojobuf::value_type::e;
+    using enum pojobuf::pl_tag;
     switch (*val.type()) {
     case array: {
         CHECK(oracle.is_array());

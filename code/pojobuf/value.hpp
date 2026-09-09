@@ -21,10 +21,10 @@ namespace pojobuf {
 
 class value {
 public:
-    value() noexcept : m_type(value_type::undefined), m_data_ptr(nullptr), m_byte_ptr(nullptr) {}
+    value() noexcept : m_tag(pl_tag::undefined), m_data_ptr(nullptr), m_byte_ptr(nullptr) {}
 
     explicit value(int64_t payload, const int64_t* parent_data_ptr, const char* byte_ptr)
-        : m_type(get_type_from_pl_tag(docstore::get_tag_from_payload(payload)))
+        : m_tag(docstore::get_tag_from_payload(payload))
         , m_data_ptr(parent_data_ptr + docstore::get_offset_from_payload(payload))
         , m_byte_ptr(byte_ptr)
     {}
@@ -32,40 +32,40 @@ public:
     value(const value&) noexcept = default;
     value& operator=(const value&) noexcept = default;
 
-    bool is(value_type t) const noexcept { return m_type.is(*t); }
-    value_type type() const noexcept { return m_type; }
+    bool is(pl_tag t) const noexcept { return m_tag == t; }
+    value_type type() const noexcept { return value_type(m_tag); }
     const int64_t* data_ptr() const noexcept { return m_data_ptr; }
     const char* byte_ptr() const noexcept { return m_byte_ptr; }
 
     bool get_boolean_value() const noexcept {
-        assert(m_type.is_boolean());
-        return m_type.is_true();
+        assert(type().is_boolean());
+        return type().is_true();
     }
 
     int32_t get_int32_value() const noexcept {
-        assert(m_type.is_integer());
+        assert(type().is_integer());
         return int32_t(*m_data_ptr);
     }
 
     int64_t get_int64_value() const noexcept {
-        assert(m_type.is_integer());
+        assert(type().is_integer());
         return *m_data_ptr;
     }
 
     int64_t get_integer_value() const noexcept {
-        assert(m_type.is_integer());
+        assert(type().is_integer());
         return *m_data_ptr;
     }
 
     double get_real_value() const noexcept {
-        assert(m_type.is_real());
+        assert(type().is_real());
         static_assert(sizeof(double) == sizeof(int64_t));
         return std::bit_cast<double>(*m_data_ptr);
     }
 
     double get_as_double() const noexcept {
-        assert(m_type.is_number());
-        if (m_type.is_integer()) {
+        assert(type().is_number());
+        if (type().is_integer()) {
             return double(*m_data_ptr);
         }
         else {
@@ -78,8 +78,8 @@ public:
     }
 
     int64_t get_as_integer() const noexcept {
-        assert(m_type.is_number());
-        if (m_type.is_integer()) {
+        assert(type().is_number());
+        if (type().is_integer()) {
             return *m_data_ptr;
         }
         else {
@@ -88,17 +88,17 @@ public:
     }
 
     size_t get_buffer_length() const noexcept {
-        assert(m_type.is_buffer());
+        assert(type().is_buffer());
         return size_t(m_data_ptr[1] - m_data_ptr[0]);
     }
 
     std::span<const char> get_buffer_value() const noexcept {
-        assert(m_type.is_buffer());
+        assert(type().is_buffer());
         return std::span<const char>(m_byte_ptr + m_data_ptr[0], m_byte_ptr + m_data_ptr[1]);
     }
 
     std::span<const std::byte> get_blob_value() const noexcept {
-        assert(m_type.is_buffer());
+        assert(type().is_buffer());
         return as_bytes(get_buffer_value());
     }
 
@@ -107,29 +107,29 @@ public:
     }
 
     std::string_view get_string_value() const noexcept {
-        assert(m_type.is_buffer());
+        assert(type().is_buffer());
         return std::string_view(m_byte_ptr + m_data_ptr[0], m_byte_ptr + m_data_ptr[1]);
     }
 
     size_t get_compound_length() const noexcept {
-        assert(m_type.is_compound());
+        assert(type().is_compound());
         return size_t(*m_data_ptr);
     }
 
     size_t get_array_length() const noexcept {
-        assert(m_type.is_array());
+        assert(type().is_array());
         return get_compound_length();
     }
 
     value get_array_element(size_t index) const noexcept {
-        assert(m_type.is_array());
+        assert(type().is_array());
         assert(index < get_compound_length());
         const auto pl = m_data_ptr[1 + index];
         return value(pl, m_data_ptr, m_byte_ptr);
     }
 
     value get_array_element_safe(size_t index) const noexcept {
-        assert(m_type.is_array());
+        assert(type().is_array());
         if (index >= get_compound_length()) {
             return {};
         }
@@ -137,19 +137,19 @@ public:
     }
 
     size_t get_object_length() const noexcept {
-        assert(m_type.is_object());
+        assert(type().is_object());
         return get_compound_length();
     }
 
     std::string_view get_object_key(size_t index) const noexcept {
-        assert(m_type.is_object());
+        assert(type().is_object());
         assert(index < get_compound_length());
         const auto& r = get_object_elems()[index];
         return std::string_view(m_byte_ptr + r.key_start, m_byte_ptr + r.key_end);
     }
 
     value get_object_value(size_t index) const noexcept {
-        assert(m_type.is_object());
+        assert(type().is_object());
         assert(index < get_compound_length());
         const auto& r = get_object_elems()[index];
         return value(r.value_payload, m_data_ptr, m_byte_ptr);
@@ -158,7 +158,7 @@ public:
     using kv = std::pair<std::string_view, value>;
 
     kv get_object_element(size_t index) const noexcept {
-        assert(m_type.is_object());
+        assert(type().is_object());
         assert(index < get_compound_length());
         const auto& r = get_object_elems()[index];
         return {
@@ -168,7 +168,7 @@ public:
     }
 
     kv get_object_element_safe(size_t index) const noexcept {
-        assert(m_type.is_object());
+        assert(type().is_object());
         if (index >= get_compound_length()) {
             return {};
         }
@@ -177,7 +177,7 @@ public:
 
     size_t find_object_key(std::string_view key) const noexcept {
         using namespace docstore;
-        assert(m_type.is_object());
+        assert(type().is_object());
 
         auto key_eq = [&](const object_elem& r) FORCE_INLINE_LAMBDA {
             auto len = size_t(r.key_end - r.key_start);
@@ -187,7 +187,7 @@ public:
 
         const auto length = get_compound_length();
         const auto elems = get_object_elems();
-        if (m_type.is_sorted_object()) {
+        if (m_tag == pl_tag::sorted_object) {
             const auto it = std::lower_bound(elems, elems + length, key, object_key_cmp{m_byte_ptr});
             if (it == elems + length) {
                 return length;
@@ -208,7 +208,7 @@ public:
     }
 
     value get_object_value_safe(std::string_view key) const noexcept {
-        assert(m_type.is_object());
+        assert(type().is_object());
         const auto index = find_object_key(key);
         if (index >= get_compound_length()) {
             return {};
@@ -217,12 +217,12 @@ public:
     }
 
 private:
-    value_type m_type;
+    pl_tag m_tag;
     const int64_t* m_data_ptr;
     const char* m_byte_ptr;
 
     const docstore::object_elem* get_object_elems() const noexcept {
-        assert(m_type.is_object());
+        assert(type().is_object());
         return reinterpret_cast<const docstore::object_elem*>(m_data_ptr + 1);
     }
 };

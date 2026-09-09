@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: MIT
 //
 #pragma once
-#include "value_type.hpp"
 #include "pl_tag.hpp"
 #include <cstdint>
 #include <cstring>

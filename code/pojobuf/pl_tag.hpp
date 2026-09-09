@@ -2,13 +2,20 @@
 // SPDX-License-Identifier: MIT
 //
 #pragma once
-#include "value_type.hpp"
 #include <cstdint>
-#include <splat/unreachable.h>
 
 namespace pojobuf {
 
+// undefined is never written to a buffer: it only appears as the tag of a default-constructed
+// (or "not found") value. It's placed first so that it groups contiguously with null and false_
+// for the falsy check.
+//
+// this is also the tag exposed as pojobuf::value_type: keep it stable, don't reorder existing
+// values, and only ever append new ones after custom. Buffers built by one version of the
+// library are only guaranteed to be readable by another if this order is preserved. A change to
+// this order is a new major version and should come with a conversion utility for old buffers.
 enum class pl_tag : uint8_t {
+    undefined,
     null,
     false_,
     true_,
@@ -32,23 +39,5 @@ constexpr uint32_t operator*(pl_tag t) {
 // see sajson-notes.md for more about this
 inline constexpr uint32_t pl_tag_bits = 4;
 static_assert(*pl_tag::custom < (1 << pl_tag_bits));
-
-static constexpr value_type get_type_from_pl_tag(pl_tag t) {
-    switch (t) {
-    case pl_tag::null: return value_type::null;
-    case pl_tag::false_: return value_type::false_;
-    case pl_tag::true_: return value_type::true_;
-    case pl_tag::int32: return value_type::int32;
-    case pl_tag::int64: return value_type::int64;
-    case pl_tag::real: return value_type::real;
-    case pl_tag::string: return value_type::string;
-    case pl_tag::blob: return value_type::blob;
-    case pl_tag::array: return value_type::array;
-    case pl_tag::object: return value_type::object;
-    case pl_tag::sorted_object: return value_type::sorted_object;
-    case pl_tag::custom: return value_type::custom;
-    }
-    SPLAT_UNREACHABLE();
-}
 
 } // namespace pojobuf
