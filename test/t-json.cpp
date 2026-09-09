@@ -244,3 +244,46 @@ TEST_CASE("successful parse and traverse") {
 
     t(str, also_sort_objects);
 }
+
+void check_find_object_key(pojobuf::value obj, bool expect_sorted) {
+    REQUIRE(obj.type().is_object());
+    CHECK(obj.type().is_sorted_object() == expect_sorted);
+
+    struct kv { const char* key; int32_t value; };
+    const kv present[] = {
+        {"zzz", 1}, {"mmm", 2}, {"aaa", 3}, {"qqq", 4}, {"bbb", 5}, {"z", 6},
+    };
+    for (auto& p : present) {
+        const auto i = obj.find_object_key(p.key);
+        REQUIRE(i < obj.get_compound_length());
+        CHECK(obj.get_object_key(i) == p.key);
+        CHECK(obj.get_object_value(i).get_int32_value() == p.value);
+    }
+
+    // "": no key is empty
+    // "b": same length as the key "z", but different content
+    // "bbz": same length as most keys, but different content
+    // "zzzz", "aaaaa": lengths which don't match any key
+    for (auto missing : {"", "b", "bbz", "zzzz", "aaaaa"}) {
+        CHECK(obj.find_object_key(missing) == obj.get_compound_length());
+    }
+}
+
+TEST_CASE("find_object_key") {
+    const char* json = R"({"zzz": 1, "mmm": 2, "aaa": 3, "qqq": 4, "bbb": 5, "z": 6})";
+
+    // unsorted (default): linear scan
+    {
+        auto doc = pojobuf::document_parse<pojobuf::json::parser_charconv_num>(json);
+        REQUIRE(doc);
+        check_find_object_key(doc->root(), false);
+    }
+
+    // sorted (max_unsorted_obj_records = 0 forces every non-empty object to be sorted):
+    // binary search
+    {
+        auto doc = pojobuf::document_parse<pojobuf::json::parser_charconv_num>(json, 0);
+        REQUIRE(doc);
+        check_find_object_key(doc->root(), true);
+    }
+}
