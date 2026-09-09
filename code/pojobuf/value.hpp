@@ -175,36 +175,28 @@ public:
         return get_object_element(index);
     }
 
-    size_t find_object_key(std::string_view key) const noexcept {
+    // sorted objects are the rare case (most objects aren't big enough to be sorted; see
+    // buf_builder::should_sort_object). keeping this path out of find_object_key proper, and
+    // never inlining it, keeps the common (linear scan) case small enough to always inline
+    FORCE_INLINE size_t find_object_key(std::string_view key) const noexcept {
         using namespace docstore;
         assert(type().is_object());
 
-        auto key_eq = [&](const object_elem& r) FORCE_INLINE_LAMBDA {
-            auto len = size_t(r.key_end - r.key_start);
-            if (len != key.size()) return false;
-            return std::memcmp(m_byte_ptr + r.key_start, key.data(), len) == 0;
-        };
-
         const auto length = get_compound_length();
         const auto elems = get_object_elems();
-        if (m_tag == pl_tag::sorted_object) {
-            const auto it = std::lower_bound(elems, elems + length, key, object_key_cmp{m_byte_ptr});
-            if (it == elems + length) {
-                return length;
-            }
-            if (key_eq(*it)) {
-                return size_t(it - elems);
-            }
-            return length;
+
+        if (m_tag == pl_tag::sorted_object) [[unlikely]] {
+            return find_sorted_object_key(key, elems, length);
         }
-        else {
-            for (size_t i = 0; i < length; ++i) {
-                if (key_eq(elems[i])) {
-                    return i;
-                }
+
+        for (size_t i = 0; i < length; ++i) {
+            const auto& r = elems[i];
+            auto len = size_t(r.key_end - r.key_start);
+            if (len == key.size() && std::memcmp(m_byte_ptr + r.key_start, key.data(), len) == 0) {
+                return i;
             }
-            return length;
         }
+        return length;
     }
 
     value get_object_value_safe(std::string_view key) const noexcept {
@@ -224,6 +216,29 @@ private:
     const docstore::object_elem* get_object_elems() const noexcept {
         assert(type().is_object());
         return reinterpret_cast<const docstore::object_elem*>(m_data_ptr + 1);
+    }
+
+    NOINLINE size_t find_sorted_object_key(
+        std::string_view key,
+        const docstore::object_elem* elems,
+        size_t length
+    ) const noexcept {
+        using namespace docstore;
+
+        auto key_eq = [&](const object_elem& r) FORCE_INLINE_LAMBDA {
+            auto len = size_t(r.key_end - r.key_start);
+            if (len != key.size()) return false;
+            return std::memcmp(m_byte_ptr + r.key_start, key.data(), len) == 0;
+        };
+
+        const auto it = std::lower_bound(elems, elems + length, key, object_key_cmp{m_byte_ptr});
+        if (it == elems + length) {
+            return length;
+        }
+        if (key_eq(*it)) {
+            return size_t(it - elems);
+        }
+        return length;
     }
 };
 
