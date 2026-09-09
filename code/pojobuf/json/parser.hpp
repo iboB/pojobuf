@@ -61,7 +61,7 @@ struct t_parser_base {
         }
 
         // clang-format off
-        static const double constants[] = {
+        static constexpr double constants[] = {
             1e-323,1e-322,1e-321,1e-320,1e-319,1e-318,1e-317,1e-316,1e-315,1e-314,
             1e-313,1e-312,1e-311,1e-310,1e-309,1e-308,1e-307,1e-306,1e-305,1e-304,
             1e-303,1e-302,1e-301,1e-300,1e-299,1e-298,1e-297,1e-296,1e-295,1e-294,
