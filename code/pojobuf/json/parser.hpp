@@ -456,7 +456,7 @@ class t_parser : public t_parser_base {
         unsigned v = 0;
         int i = 4;
         while (i--) {
-            unsigned char c = *p++;
+            unsigned char c = *p;
             if (c >= '0' && c <= '9') {
                 c -= '0';
             }
@@ -470,6 +470,7 @@ class t_parser : public t_parser_base {
                 fail(p, errc::invalid_, "utf8");
             }
             v = (v << 4) + c;
+            ++p;
         }
 
         u = v;
