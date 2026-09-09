@@ -15,7 +15,7 @@
 namespace pojobuf::json {
 
 namespace util {
-// empty return, means no escape
+// empty return means no escape
 std::string_view escape_utf8_byte(char c) {
     auto u = uint8_t(c);
 
@@ -60,8 +60,7 @@ public:
     explicit writer(StringSink& sink, bool pretty = false)
         : m_compact_depth(pretty ? uint32_t(-1) : 0)
         , sink(sink)
-    {
-    }
+    {}
 
     uint32_t cur_depth() const noexcept {
         return uint32_t(m_compound_stack.size());
