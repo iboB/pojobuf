@@ -130,6 +130,9 @@ class t_parser : public t_parser_base {
     const char* m_text_end;
     Builder& m_builder;
 
+    static_assert(std::is_trivially_destructible_v<typename Builder::piecewise_string_builder>,
+        "piecewise_string_builder must be trivially destructible in a longjmp context");
+
     // error handlng
     jmp_buf m_jmpbuf; // error handling jump buf
     const char* m_error_location;
@@ -652,33 +655,12 @@ class t_parser : public t_parser_base {
             }
         }
     }
-public:
-    t_parser(std::string_view text, Builder& builder) noexcept
-        : m_text_begin(text.data())
-        , m_text_end(text.data() + text.size())
-        , m_builder(builder)
-    {}
 
-    itlib::expected<const char*, parse_error> parse() {
-        /////////////////////////////////////////
-        // error handling
-        //
-        if (setjmp(m_jmpbuf) > 0) {
-            return itlib::unexpected(parse_error::create(
-                "pojobuf::json",
-                m_error_code, std::string(m_error_arg),
-                m_text_begin, m_error_location
-            ));
-        }
-
-        /////////////////////////////////////////
-        // init parsing
-        //
+    NOINLINE const char* do_parse() {
+        // init state machine
         auto p = m_text_begin;
 
-        /////////////////////////////////////////
         // state machine
-        //
         goto next_element;
 
         if (0) {
@@ -831,6 +813,26 @@ public:
         /////////////////////////////////////////
 
         SPLAT_UNREACHABLE();
+    }
+public:
+    t_parser(std::string_view text, Builder& builder) noexcept
+        : m_text_begin(text.data())
+        , m_text_end(text.data() + text.size())
+        , m_builder(builder)
+    {}
+
+    itlib::expected<const char*, parse_error> parse() {
+        // init error handling
+        if (setjmp(m_jmpbuf) > 0) {
+            return itlib::unexpected(parse_error::create(
+                "pojobuf::json",
+                m_error_code, std::string(m_error_arg),
+                m_text_begin, m_error_location
+            ));
+        }
+
+        // call a noinline function to keep parsing out of a "returns twice" context
+        return do_parse();
     }
 };
 
