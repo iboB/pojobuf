@@ -34,12 +34,31 @@ std::string_view escape_utf8_byte(char c) {
 }
 } // namespace util
 
-template <typename StringSink, invalid_value_strategy InvalidNumStrategy = invalid_value_strategy::no_check>
+struct count_only_stack {
+    uint32_t depth = 0;
+    uint32_t cur_depth() const noexcept { return depth; }
+    void push(uint8_t) noexcept { ++depth; }
+    void pop() noexcept { --depth; }
+    bool empty() const noexcept { return depth == 0; }
+};
+
+template <size_t StaticSize = 32>
+struct compound_stack {
+    itlib::small_vector<uint8_t, StaticSize> stack;
+
+    uint32_t cur_depth() const noexcept { return uint32_t(stack.size()); }
+    void push(uint8_t t) { stack.push_back(t); }
+    void pop() noexcept { stack.pop_back(); }
+    bool empty() const noexcept { return stack.empty(); }
+    uint8_t top() const noexcept { return stack.back(); }
+};
+
+template <typename StringSink, typename Stack = compound_stack<>, invalid_value_strategy InvalidNumStrategy = invalid_value_strategy::no_check>
 class writer {
     bool m_has_value = false;
     bool m_has_added_key = false; // only through builder compat functions
     bool m_pretty = false;
-    itlib::small_vector<uint8_t, 32> m_compound_stack;
+    Stack m_stack;
     std::string_view m_pending_key = {};
 
     void add_new_line(bool close) const {
@@ -62,28 +81,24 @@ public:
         , sink(sink)
     {}
 
-    uint32_t cur_depth() const noexcept {
-        return uint32_t(m_compound_stack.size());
-    }
+    Stack& stack() noexcept { return m_stack; }
+    const Stack& stack() const noexcept { return m_stack; }
 
-    void push_stack(uint8_t t) {
-        m_compound_stack.push_back(t);
-    }
-    void pop_stack() noexcept {
-        m_compound_stack.pop_back();
+    uint32_t cur_depth() const noexcept {
+        return m_stack.cur_depth();
     }
 
     bool current_compound_is_root() {
-        return m_compound_stack.empty();
+        return m_stack.empty();
     }
 
     bool current_compound_is_array() {
-        return m_compound_stack.back() == *pl_tag::array;
+        return m_stack.top() == *pl_tag::array;
     }
 
     bool current_compound_is_object() {
-        auto back = m_compound_stack.back();
-        return back == *pl_tag::object || back == *pl_tag::sorted_object;
+        auto top = m_stack.top();
+        return top == *pl_tag::object || top == *pl_tag::sorted_object;
     }
 
     bool pretty() const noexcept {
@@ -134,12 +149,12 @@ public:
         sink.add('"');
     }
 
-    void add_raw_json_value(std::string_view& str) {
+    void add_raw_json_value(std::string_view str) {
         prepare_for_val();
         sink.add(str);
     }
 
-    void add_unescaped_string_value(std::string_view& str) {
+    void add_unescaped_string_value(std::string_view str) {
         prepare_for_val();
         sink.add('"');
         sink.add(str);
@@ -191,7 +206,7 @@ public:
 
         prepare_for_val();
 
-        // instead of using charconv or similar we can make use of some facts to make this more optimial
+        // instead of using charconv or similar we can make use of some facts to make this more optimal
         // * base 10 is known at compile time
         // * we don't need to fill the front of a buffer, instead we can start from the back and output reverse
 
@@ -256,7 +271,7 @@ public:
         }
 
         m_has_value = false;
-        push_stack(uint8_t(Tag));
+        m_stack.push(uint8_t(Tag));
     }
 
     void add_object_key(std::string_view str) {
@@ -284,7 +299,7 @@ public:
         }
 
         m_has_value = true;
-        pop_stack();
+        m_stack.pop();
     }
 
     void prepare_for_val() {

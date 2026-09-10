@@ -69,7 +69,7 @@ void dump(pojobuf::value val) {
 }
 
 int main() {
-    char json[] = R"({"ar": [2.3, -5], "val": 5, "b": false, "str": "hello world"})";
+    char json[] = R"({"ar": [2.3, -5, [1]], "val": 5, "b": false, "str": "hello world"})";
 
     //std::vector<int64_t> buffer(pojobuf::json::get_buffer_size_for_json(sizeof(json)));
     //[[maybe_unused]] std::vector<int64_t> scratch_buf(pojobuf::json::get_scratch_buffer_size_for_json(json));
