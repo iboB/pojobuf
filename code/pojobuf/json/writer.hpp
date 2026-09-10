@@ -6,6 +6,7 @@
 #include "../pl_tag.hpp"
 #include "../invalid_value_strategy.hpp"
 #include "../bits/charconv.hpp"
+#include "../buffer_range.hpp"
 #include <itlib/small_vector.hpp>
 #include <concepts>
 #include <type_traits>
