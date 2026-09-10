@@ -58,7 +58,7 @@ void bench_pojobuf_alloc(picobench::state& state) {
 
 void bench_sajson_0(picobench::state& state) {
     auto content = get_input(state).content;
-    itlib::pod_vector<size_t> buffer(content.size());
+    itlib::pod_vector<size_t, pojobuf::bits::noinit_pod_allocator> buffer(content.size());
 
     state.start_timer();
     auto doc = sajson::parse(
