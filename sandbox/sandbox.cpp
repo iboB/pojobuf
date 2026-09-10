@@ -1,98 +1,129 @@
 // Copyright (c) Borislav Stanimirov
 // SPDX-License-Identifier: MIT
 //
-#include <pojobuf/value.hpp>
-#include <pojobuf/docbuild.hpp>
+#include <pojobuf/document.hpp>
+#include <pojobuf/document.parse.hpp>
 #include <pojobuf/json/parser.hpp>
-#include <pojobuf/json/util.hpp>
-#include <pojobuf/json/writer.hpp>
-#include <pojobuf/container_string_sink.hpp>
-#include <pojobuf/ostream_string_sink.hpp>
+
+#define SAJSON_UNSORTED_OBJECT_KEYS
+#include <sajson.h>
+
+#include <pojobuf/dev/read_file.hpp>
+#include <json-test-data.h>
+
+#include <chrono>
 #include <iostream>
-#include <vector>
+#include <string>
+#include <string_view>
 
-void rdump(pojobuf::value val) {
-    using enum pojobuf::pl_tag;
-    switch (*val.type()) {
-    case array: {
-        std::cout << "[";
-        for (size_t i = 0; i < val.get_compound_length(); ++i) {
-            rdump(val.get_array_element(i));
-            if (i < val.get_compound_length() - 1) {
-                std::cout << ", ";
-            }
-        }
-        std::cout << "]";
-        break;
-    }
-    case object:
-    case sorted_object: {
-        std::cout << "{";
-        for (size_t i = 0; i < val.get_compound_length(); ++i) {
-            auto key = val.get_object_key(i);
-            std::cout << key << ": ";
-            rdump(val.get_object_value(i));
-            if (i < val.get_compound_length() - 1) {
-                std::cout << ", ";
-            }
-        }
-        std::cout << "}";
-        break;
-    }
-    case string:
-        std::cout << "\"" << val.get_string_value() << "\"";
-        break;
-    case int32:
-        std::cout << val.get_int32_value();
-        break;
-    case real:
-        std::cout << val.get_real_value();
-        break;
-    case true_:
-        std::cout << "true";
-        break;
-    case false_:
-        std::cout << "false";
-        break;
-    case null:
-        std::cout << "null";
-        break;
-    default:
-        std::cout << "???";
-        break;
-    }
+#if defined(_MSC_VER)
+#define PB_NOINLINE __declspec(noinline)
+#else
+#define PB_NOINLINE __attribute__((noinline))
+#endif
+
+enum class engine {
+    pojobuf,
+    sajson,
+    both,
+};
+
+PB_NOINLINE size_t run_pojobuf_once(std::string content) {
+    pojobuf::bits::pod_vector buffer(pojobuf::json::get_buffer_size_for_json(content));
+    auto data_alloc = pojobuf::docbuild::single_buf_nocheck_data_alloc::from_container(buffer);
+    pojobuf::docbuild::mutable_source_byte_alloc byte_alloc(content.data());
+    pojobuf::docbuild::buf_builder builder(data_alloc, byte_alloc);
+
+    pojobuf::json::parser<false>::parse(content, builder);
+    auto root = pojobuf::value(builder.finalize(), buffer.data(), content.data());
+    return root.get_compound_length();
 }
 
-void dump(pojobuf::value val) {
-    rdump(val);
-    std::cout << "\n";
+PB_NOINLINE size_t run_sajson_once(std::string content) {
+    itlib::pod_vector<size_t> buffer(content.size());
+
+    auto doc = sajson::parse(
+        sajson::bounded_allocation{buffer.data(), buffer.size()},
+        sajson::mutable_string_view(content.size(), content.data())
+    );
+    auto root = doc.get_root();
+    return root.get_length();
 }
 
-int main() {
-    char json[] = R"({"ar": [2.3, -5], "val": 5, "b": false, "str": "hello world"})";
+const char* resolve_file(std::string_view file) {
+    if (file == "canada") return JSON_TEST_DATA_FILE_canada_json;
+    if (file == "citm") return JSON_TEST_DATA_FILE_citm_catalog_json;
+    if (file == "gsoc") return JSON_TEST_DATA_FILE_gsoc_2018_json;
+    if (file == "marine") return JSON_TEST_DATA_FILE_marine_ik_json;
+    if (file == "mesh") return JSON_TEST_DATA_FILE_mesh_json;
+    if (file == "mesh.pretty") return JSON_TEST_DATA_FILE_mesh_pretty_json;
+    return nullptr;
+}
 
-    //std::vector<int64_t> buffer(pojobuf::json::get_buffer_size_for_json(sizeof(json)));
-    //[[maybe_unused]] std::vector<int64_t> scratch_buf(pojobuf::json::get_scratch_buffer_size_for_json(json));
+engine parse_engine(std::string_view arg) {
+    if (arg == "pojobuf") return engine::pojobuf;
+    if (arg == "sajson") return engine::sajson;
+    if (arg == "both") return engine::both;
+    return engine::both;
+}
 
-    //auto data_alloc = pojobuf::docbuild::single_buf_nocheck_data_alloc::from_container(buffer);
-    ////auto data_alloc = pojobuf::docbuild::multi_buf_nocheck_data_alloc::from_containers(buffer, scratch_buf);
+int main(int argc, char** argv) {
+    engine eng = engine::both;
+    std::string file = "canada";
+    int iterations = 500;
+    int warmup = 10;
 
-    ////pojobuf::docbuild::mutable_source_byte_alloc byte_alloc(json);
-    //pojobuf::docbuild::valuebuf_byte_alloc byte_alloc(data_alloc);
+    for (int i = 1; i < argc; ++i) {
+        std::string_view a(argv[i]);
+        if (a.starts_with("--engine=")) {
+            eng = parse_engine(a.substr(9));
+        }
+        else if (a.starts_with("--file=")) {
+            file = a.substr(7);
+        }
+        else if (a.starts_with("--iters=")) {
+            iterations = std::stoi(std::string(a.substr(8)));
+        }
+        else if (a.starts_with("--warmup=")) {
+            warmup = std::stoi(std::string(a.substr(9)));
+        }
+    }
 
-    //pojobuf::docbuild::buf_builder builder(data_alloc, byte_alloc);
+    std::string path;
+    if (auto mapped = resolve_file(file)) {
+        path = mapped;
+    }
+    else {
+        path = file;
+    }
 
-    //pojobuf::json::parser_charconv_num::parse(json, builder);
+    const auto input = pojobuf::dev::read_file(path);
+    volatile size_t sink = 0;
 
-    //auto cur_payload = builder.finalize();
-    //pojobuf::value root(cur_payload, data_alloc.get_value_buffer_ptr(), byte_alloc.get_byte_ptr());
+    auto run = [&](const char* name, auto fn) {
+        for (int i = 0; i < warmup; ++i) {
+            sink ^= fn(input);
+        }
+        const auto t0 = std::chrono::steady_clock::now();
+        for (int i = 0; i < iterations; ++i) {
+            sink ^= fn(input);
+        }
+        const auto t1 = std::chrono::steady_clock::now();
+        const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();
+        std::cout << name << "\n";
+        std::cout << "  file: " << file << "\n";
+        std::cout << "  iterations: " << iterations << "\n";
+        std::cout << "  total-ms: " << ms << "\n";
+        std::cout << "  ns/op: " << (ms * 1000000.0 / iterations) << "\n";
+    };
 
-    //dump(root);
+    if (eng == engine::pojobuf || eng == engine::both) {
+        run("pojobuf", run_pojobuf_once);
+    }
+    if (eng == engine::sajson || eng == engine::both) {
+        run("sajson", run_sajson_once);
+    }
 
-    pojobuf::ostream_string_sink sink(std::cout);
-    pojobuf::json::writer w(sink, true);
-
-    pojobuf::json::parser_charconv_num::parse(json, w);
-
-    return 0;
+    std::cout << "sink=" << sink << "\n";
+    return int(sink == static_cast<size_t>(-1));
 }
