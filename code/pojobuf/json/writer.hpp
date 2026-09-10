@@ -38,12 +38,12 @@ template <typename StringSink, invalid_value_strategy InvalidNumStrategy = inval
 class writer {
     bool m_has_value = false;
     bool m_has_added_key = false; // only through builder compat functions
+    bool m_pretty = false;
     itlib::small_vector<uint8_t, 32> m_compound_stack;
-    uint32_t m_compact_depth;
     std::string_view m_pending_key = {};
 
     void add_new_line(bool close) const {
-        if (!cur_depth_is_pretty()) return;
+        if (!m_pretty) return;
         const auto indent = cur_depth() - close;
         if (indent == 0 && !m_has_value) return; // no new line for initial value
 
@@ -58,7 +58,7 @@ public:
     StringSink& sink;
 
     explicit writer(StringSink& sink, bool pretty = false)
-        : m_compact_depth(pretty ? uint32_t(-1) : 0)
+        : m_pretty(pretty)
         , sink(sink)
     {}
 
@@ -69,10 +69,7 @@ public:
     void push_stack(uint8_t t) {
         m_compound_stack.push_back(t);
     }
-    void pop_sack() noexcept {
-        if (m_compact_depth == cur_depth()) {
-            m_compact_depth = uint32_t(-1);
-        }
+    void pop_stack() noexcept {
         m_compound_stack.pop_back();
     }
 
@@ -89,13 +86,11 @@ public:
         return back == *pl_tag::object || back == *pl_tag::sorted_object;
     }
 
-    void set_render_compact() {
-        if (cur_depth_is_pretty()) {
-            m_compact_depth = cur_depth();
-        }
+    bool pretty() const noexcept {
+        return m_pretty;
     }
-    bool cur_depth_is_pretty() const noexcept {
-        return cur_depth() < m_compact_depth;
+    bool set_pretty(bool p) noexcept {
+        return std::exchange(m_pretty, p);
     }
 
     void write_escaped_utf8_string(std::string_view str) {
@@ -289,7 +284,7 @@ public:
         }
 
         m_has_value = true;
-        pop_sack();
+        pop_stack();
     }
 
     void prepare_for_val() {
