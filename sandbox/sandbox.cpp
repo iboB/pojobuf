@@ -28,20 +28,19 @@ enum class engine {
     both,
 };
 
-PB_NOINLINE size_t run_pojobuf_once(std::string content) {
-    pojobuf::bits::pod_vector buffer(pojobuf::json::get_buffer_size_for_json(content));
+PB_NOINLINE size_t run_pojobuf_once(std::string& content, std::span<std::byte> buf) {
+    auto buffer = std::span(reinterpret_cast<std::int64_t*>(buf.data()), buf.size_bytes() / sizeof(std::int64_t));
     auto data_alloc = pojobuf::docbuild::single_buf_nocheck_data_alloc::from_container(buffer);
     pojobuf::docbuild::mutable_source_byte_alloc byte_alloc(content.data());
     pojobuf::docbuild::buf_builder builder(data_alloc, byte_alloc);
 
-    pojobuf::json::parser<false>::parse(content, builder);
+    pojobuf::json::parser_custom_num::parse(content, builder);
     auto root = pojobuf::value(builder.finalize(), buffer.data(), content.data());
     return root.get_compound_length();
 }
 
-PB_NOINLINE size_t run_sajson_once(std::string content) {
-    itlib::pod_vector<size_t, pojobuf::bits::noinit_pod_allocator> buffer(content.size());
-
+PB_NOINLINE size_t run_sajson_once(std::string& content, std::span<std::byte> buf) {
+    auto buffer = std::span(reinterpret_cast<std::size_t*>(buf.data()), buf.size_bytes() / sizeof(std::size_t));
     auto doc = sajson::parse(
         sajson::bounded_allocation{buffer.data(), buffer.size()},
         sajson::mutable_string_view(content.size(), content.data())
@@ -69,8 +68,8 @@ engine parse_engine(std::string_view arg) {
 
 int main(int argc, char** argv) {
     engine eng = engine::both;
-    std::string file = "canada";
-    int iterations = 500;
+    std::string file = "marine";
+    int iterations = 200;
     int warmup = 10;
 
     for (int i = 1; i < argc; ++i) {
@@ -98,15 +97,22 @@ int main(int argc, char** argv) {
     }
 
     const auto input = pojobuf::dev::read_file(path);
+    itlib::pod_vector<std::byte> buf(input.size() * sizeof(uint64_t) * 2);
     volatile size_t sink = 0;
 
     auto run = [&](const char* name, auto fn) {
         for (int i = 0; i < warmup; ++i) {
-            sink ^= fn(input);
+            auto input_copy = input;
+            sink ^= fn(input_copy, buf);
+        }
+        std::vector<std::string> copies;
+        copies.reserve(iterations);
+        for (int i= 0; i < iterations; ++i) {
+            copies.push_back(input);
         }
         const auto t0 = std::chrono::steady_clock::now();
         for (int i = 0; i < iterations; ++i) {
-            sink ^= fn(input);
+            sink ^= fn(copies[i], buf);
         }
         const auto t1 = std::chrono::steady_clock::now();
         const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();
@@ -125,5 +131,5 @@ int main(int argc, char** argv) {
     }
 
     std::cout << "sink=" << sink << "\n";
-    return int(sink == static_cast<size_t>(-1));
+    return 0;
 }
