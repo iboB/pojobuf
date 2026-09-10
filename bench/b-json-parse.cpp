@@ -58,6 +58,10 @@ void bench_pojobuf_alloc(picobench::state& state) {
 
 void bench_sajson_0(picobench::state& state) {
     auto content = get_input(state).content;
+
+    // note that we use the noinit allocator here
+    // if we don't, pod_vector will zero-init the memory which incidentally also warms it up
+    // thus the result from parse below becomes significantly faster as the buffer is in cache
     itlib::pod_vector<size_t, pojobuf::bits::noinit_pod_allocator> buffer(content.size());
 
     state.start_timer();
