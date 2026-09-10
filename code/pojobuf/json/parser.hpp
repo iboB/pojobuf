@@ -139,7 +139,7 @@ class t_parser : public t_parser_base {
     const char* skip_whitespace(const char* p) noexcept {
         while (true) {
             if (at_eof(p)) [[unlikely]] {
-                return fail(p, errc::unexpected_end);
+                return nullptr;
             }
             else if (is_whitespace(*p)) {
                 ++p;
@@ -150,10 +150,10 @@ class t_parser : public t_parser_base {
         }
     }
 
-    bool at_eof(const char* p) const noexcept {
+    FORCE_INLINE bool at_eof(const char* p) const noexcept {
         return p == m_text_end;
     }
-    bool has_remaining_characters(const char* p, int n) const noexcept {
+    FORCE_INLINE bool has_remaining_characters(const char* p, int n) const noexcept {
         return p + n <= m_text_end;
     }
 
@@ -663,7 +663,7 @@ class t_parser : public t_parser_base {
         empty_array_or_element:
             p = skip_whitespace(p + 1); // assume *p == '['
             if (!p) [[unlikely]] {
-                return nullptr;
+                return fail(p, errc::unexpected_end);
             }
             if (*p == ']') {
                 goto pop_array;
@@ -676,7 +676,7 @@ class t_parser : public t_parser_base {
         empty_object_or_element:
             p = skip_whitespace(p + 1); // assume *p == '{'
             if (!p) [[unlikely]] {
-                return nullptr;
+                return fail(p, errc::unexpected_end);
             }
             if (*p == '}') {
                 goto pop_object;
@@ -694,7 +694,7 @@ class t_parser : public t_parser_base {
 
             p = skip_whitespace(p);
             if (!p) [[unlikely]] {
-                return nullptr;
+                return fail(p, errc::unexpected_end);
             }
 
             if (m_builder.current_compound_is_array()) {
@@ -741,7 +741,7 @@ class t_parser : public t_parser_base {
         object_key: {
             p = skip_whitespace(p);
             if (!p) [[unlikely]] {
-                return nullptr;
+                return fail(p, errc::unexpected_end);
             }
             if (*p != '"') [[unlikely]] {
                 return fail(p, errc::missing_object_key);
@@ -754,7 +754,7 @@ class t_parser : public t_parser_base {
             m_builder.add_object_key(range);
             p = skip_whitespace(p);
             if (!p) [[unlikely]] {
-                return nullptr;
+                return fail(p, errc::unexpected_end);
             }
             if (*p != ':') [[unlikely]] {
                 return fail(p, errc::expected_, ":");
@@ -767,7 +767,7 @@ class t_parser : public t_parser_base {
         next_element:
             p = skip_whitespace(p);
             if (!p) [[unlikely]] {
-                return nullptr;
+                return fail(p, errc::unexpected_end);
             }
 
             switch (*p) {
