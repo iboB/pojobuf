@@ -8,6 +8,7 @@
 #include <pojobuf/json/writer.hpp>
 #include <pojobuf/container_string_sink.hpp>
 #include <pojobuf/ostream_string_sink.hpp>
+#include <pojobuf/value.transfer.hpp>
 #include <iostream>
 #include <vector>
 
