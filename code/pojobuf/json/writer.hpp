@@ -57,12 +57,12 @@ template <typename StringSink, typename Stack = compound_stack<>, invalid_value_
 class writer {
     bool m_has_value = false;
     bool m_has_added_key = false; // only through builder compat functions
-    bool m_pretty = false;
+    uint32_t m_compact_depth;
     Stack m_stack;
     std::string_view m_pending_key = {};
 
     void add_new_line(bool close) const {
-        if (!m_pretty) return;
+        if (cur_depth_is_compact()) return;
         const auto indent = cur_depth() - close;
         if (indent == 0 && !m_has_value) return; // no new line for initial value
 
@@ -77,12 +77,19 @@ public:
     StringSink& sink;
 
     explicit writer(StringSink& sink, bool pretty = false)
-        : m_pretty(pretty)
+        : m_compact_depth(pretty ? uint32_t(-1) : 0)
         , sink(sink)
     {}
 
-    Stack& stack() noexcept { return m_stack; }
-    const Stack& stack() const noexcept { return m_stack; }
+    void push_stack(uint8_t t) {
+        m_stack.push(t);
+    }
+    void pop_stack() noexcept {
+        if (m_compact_depth == cur_depth()) {
+            m_compact_depth = uint32_t(-1);
+        }
+        m_stack.pop();
+    }
 
     uint32_t cur_depth() const noexcept {
         return m_stack.cur_depth();
@@ -101,11 +108,13 @@ public:
         return top == *pl_tag::object || top == *pl_tag::sorted_object;
     }
 
-    bool pretty() const noexcept {
-        return m_pretty;
+    void set_render_compact() {
+        if (!cur_depth_is_compact()) {
+            m_compact_depth = cur_depth();
+        }
     }
-    bool set_pretty(bool p) noexcept {
-        return std::exchange(m_pretty, p);
+    bool cur_depth_is_compact() const noexcept {
+        return cur_depth() >= m_compact_depth;
     }
 
     void write_escaped_utf8_string(std::string_view str) {
@@ -271,7 +280,7 @@ public:
         }
 
         m_has_value = false;
-        m_stack.push(uint8_t(Tag));
+        push_stack(uint8_t(Tag));
     }
 
     void add_object_key(std::string_view str) {
@@ -299,7 +308,7 @@ public:
         }
 
         m_has_value = true;
-        m_stack.pop();
+        pop_stack();
     }
 
     void prepare_for_val() {
