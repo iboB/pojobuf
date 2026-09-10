@@ -139,12 +139,10 @@ class t_parser : public t_parser_base {
     errc m_error_code;
     std::string_view m_error_arg;
 
-    [[noreturn]] void fail(const char* p, parse_error::errc code, std::string_view arg = {}) noexcept {
+    void fail(const char* p, parse_error::errc code, std::string_view arg = {}) noexcept {
         m_error_location = p;
         m_error_code = code;
         m_error_arg = arg;
-        //longjmp(m_jmpbuf, 1);
-        std::terminate();
     }
 
     const char* skip_whitespace(const char* p) noexcept {

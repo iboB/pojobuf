@@ -68,7 +68,7 @@ engine parse_engine(std::string_view arg) {
 
 int main(int argc, char** argv) {
     engine eng = engine::both;
-    std::string file = "marine";
+    std::string file = "citm";
     int iterations = 200;
     int warmup = 10;
 

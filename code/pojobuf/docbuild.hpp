@@ -143,7 +143,7 @@ private:
         const auto value_offset = adata.get_value_offset();
         auto length_value = adata.alloc_value();
 
-        auto transfer_elem = [&value_offset](int64_t elem) FORCE_INLINE_LAMBDA {
+        auto transfer_elem = [&value_offset](int64_t elem) __attribute__((always_inline)) {
             const auto abs_offset = get_offset_from_payload(elem);
             const auto rel_offset = abs_offset - value_offset;
             const auto tag = get_tag_from_payload(elem);
