@@ -12,15 +12,9 @@
 #include <itlib/expected.hpp>
 
 #include <limits>
-#include <csetjmp>
 #include <string_view>
 
 #include <splat/inline.h>
-
-#include <splat/warnings.h>
-PRAGMA_WARNING_PUSH
-DISABLE_MSVC_WARNING(4611) // setjmp, but we know what we're doing
-DISABLE_MSVC_WARNING(4324) // padding warning for jmpbuf
 
 namespace pojobuf::json {
 
@@ -130,26 +124,22 @@ class t_parser : public t_parser_base {
     const char* m_text_end;
     Builder& m_builder;
 
-    static_assert(std::is_trivially_destructible_v<typename Builder::piecewise_string_builder>,
-        "piecewise_string_builder must be trivially destructible in a longjmp context");
-
     // error handlng
-    jmp_buf m_jmpbuf; // error handling jump buf
     const char* m_error_location;
     errc m_error_code;
     std::string_view m_error_arg;
 
-    [[noreturn]] void fail(const char* p, parse_error::errc code, std::string_view arg = {}) noexcept {
+    const char* fail(const char* p, parse_error::errc code, std::string_view arg = {}) noexcept {
         m_error_location = p;
         m_error_code = code;
         m_error_arg = arg;
-        longjmp(m_jmpbuf, 1);
+        return nullptr;
     }
 
     const char* skip_whitespace(const char* p) noexcept {
         while (true) {
             if (at_eof(p)) [[unlikely]] {
-                fail(p, errc::unexpected_end);
+                return fail(p, errc::unexpected_end);
             }
             else if (is_whitespace(*p)) {
                 ++p;
@@ -183,7 +173,7 @@ class t_parser : public t_parser_base {
             negative = true;
 
             if (at_eof(p)) [[unlikely]] {
-                fail(p, errc::unexpected_end);
+                return fail(p, errc::unexpected_end);
             }
 
             ++max_digit_after_risky;
@@ -204,7 +194,7 @@ class t_parser : public t_parser_base {
         else {
             unsigned char c = *p;
             if (c < '0' || c > '9') [[unlikely]] {
-                fail(p, errc::invalid_number);
+                return fail(p, errc::invalid_number);
             }
 
             do {
@@ -237,11 +227,11 @@ class t_parser : public t_parser_base {
             }
             ++p;
             if (at_eof(p)) [[unlikely]] {
-                fail(p, errc::unexpected_end);
+                return fail(p, errc::unexpected_end);
             }
             char c = *p;
             if (c < '0' || c > '9') [[unlikely]] {
-                fail(p, errc::invalid_number);
+                return fail(p, errc::invalid_number);
             }
 
             do {
@@ -268,7 +258,7 @@ class t_parser : public t_parser_base {
             }
             ++p;
             if (at_eof(p)) [[unlikely]] {
-                fail(p, errc::unexpected_end);
+                return fail(p, errc::unexpected_end);
             }
 
             bool negative_exponent = false;
@@ -276,13 +266,13 @@ class t_parser : public t_parser_base {
                 negative_exponent = true;
                 ++p;
                 if (at_eof(p)) [[unlikely]] {
-                    fail(p, errc::unexpected_end);
+                    return fail(p, errc::unexpected_end);
                 }
             }
             else if ('+' == *p) {
                 ++p;
                 if (at_eof(p)) [[unlikely]] {
-                    fail(p, errc::unexpected_end);
+                    return fail(p, errc::unexpected_end);
                 }
             }
 
@@ -290,7 +280,7 @@ class t_parser : public t_parser_base {
 
             char c = *p;
             if (c < '0' || c > '9') [[unlikely]] {
-                fail(p, errc::invalid_number);
+                return fail(p, errc::invalid_number);
             }
             for (;;) {
                 // c guaranteed to be between '0' and '9', inclusive
@@ -351,7 +341,7 @@ class t_parser : public t_parser_base {
         if ('-' == *p) {
             ++p;
             if (at_eof(p)) [[unlikely]] {
-                fail(p, errc::unexpected_end);
+                return fail(p, errc::unexpected_end);
             }
         }
 
@@ -372,7 +362,7 @@ class t_parser : public t_parser_base {
                 match_double = true;
             }
             else if (res.ec != std::errc()) {
-                fail(p, errc::invalid_number);
+                return fail(p, errc::invalid_number);
             }
             else {
                 if (value >= std::numeric_limits<int32_t>::min() && value <= std::numeric_limits<int32_t>::max()) {
@@ -389,7 +379,7 @@ class t_parser : public t_parser_base {
         double double_value = 0;
         auto res = POJOBUF_CHARCONV_NAMESPACE::from_chars(begin, m_text_end, double_value);
         if (res.ec != std::errc()) {
-            fail(p, errc::invalid_number);
+            return fail(p, errc::invalid_number);
         }
         m_builder.add_number_element(double_value);
         p = res.ptr;
@@ -401,12 +391,12 @@ class t_parser : public t_parser_base {
         ++p;
         constexpr int length = sizeof...(Args);
         if (!has_remaining_characters(p, length)) [[unlikely]] {
-            fail(p, errc::unexpected_end);
+            return fail(p, errc::unexpected_end);
         }
         constexpr char expected[] = {Args...};
         for (size_t i = 0; i < length; ++i) {
             if (p[i] != expected[i]) [[unlikely]] {
-                fail(p, errc::unexpected_, std::string_view(p + i, 1));
+                return fail(p, errc::unexpected_, std::string_view(p + i, 1));
             }
         }
         return p + length;
@@ -437,7 +427,7 @@ class t_parser : public t_parser_base {
         }
         for (;;) {
             if (p >= input_end_local) [[unlikely]] {
-                fail(p, errc::unexpected_end);
+                return fail(p, errc::unexpected_end);
             }
 
             if (!is_plain_string_character(*p)) {
@@ -470,7 +460,7 @@ class t_parser : public t_parser_base {
                 c = c - 'A' + 10;
             }
             else {
-                fail(p, errc::invalid_, "utf8");
+                return fail(p, errc::invalid_, "utf8");
             }
             v = (v << 4) + c;
             ++p;
@@ -508,11 +498,11 @@ class t_parser : public t_parser_base {
 
         for (;;) {
             if (p >= input_end_local) [[unlikely]] {
-                fail(p, errc::unexpected_end);
+                return fail(p, errc::unexpected_end);
             }
 
             if (*p >= 0 && *p < 0x20) [[unlikely]] {
-                fail(p, errc::illegal_codepoint);
+                return fail(p, errc::illegal_codepoint);
             }
 
             switch (*p) {
@@ -523,7 +513,7 @@ class t_parser : public t_parser_base {
             case '\\':
                 ++p;
                 if (p >= input_end_local) [[unlikely]] {
-                    fail(p, errc::unexpected_end);
+                    return fail(p, errc::unexpected_end);
                 }
 
                 char replacement;
@@ -559,27 +549,33 @@ class t_parser : public t_parser_base {
                 case 'u': {
                     ++p;
                     if (!has_remaining_characters(p, 4)) [[unlikely]] {
-                        fail(p, errc::unexpected_end);
+                        return fail(p, errc::unexpected_end);
                     }
                     unsigned u = 0; // gcc's complaining that this could be used
                                     // uninitialized. wrong.
                     p = read_hex(p, u);
+                    if (!p) [[unlikely]] {
+                        return nullptr;
+                    }
                     if (u >= 0xD800 && u <= 0xDBFF) {
                         if (!has_remaining_characters(p, 6)) [[unlikely]] {
-                            fail(p, errc::invalid_, "utf16");
+                            return fail(p, errc::invalid_, "utf16");
                         }
                         char p0 = p[0];
                         char p1 = p[1];
                         if (p0 != '\\' || p1 != 'u') {
-                            fail(p, errc::expected_, "u");
+                            return fail(p, errc::expected_, "u");
                         }
                         p += 2;
                         unsigned v = 0; // gcc's complaining that this could be
                                         // used uninitialized. wrong.
                         p = read_hex(p, v);
+                        if (!p) [[unlikely]] {
+                            return nullptr;
+                        }
 
                         if (v < 0xDC00 || v > 0xDFFF) {
-                            fail(p, errc::invalid_, "utf16");
+                            return fail(p, errc::invalid_, "utf16");
                         }
                         u = 0x10000 + (((u - 0xD800) << 10) | (v - 0xDC00));
                     }
@@ -587,7 +583,7 @@ class t_parser : public t_parser_base {
                     break;
                 }
                 default:
-                    fail(p, errc::unknown_escape);
+                    return fail(p, errc::unknown_escape);
                 }
                 break;
 
@@ -599,11 +595,11 @@ class t_parser : public t_parser_base {
                 }
                 else if (c0 < 224) {
                     if (!has_remaining_characters(p, 2)) [[unlikely]] {
-                        fail(p, errc::unexpected_end);
+                        return fail(p, errc::unexpected_end);
                     }
                     unsigned char c1 = p[1];
                     if (c1 < 128 || c1 >= 192) {
-                        fail(p + 1, errc::invalid_, "utf8");
+                        return fail(p + 1, errc::invalid_, "utf8");
                     }
                     psb.push(c0);
                     psb.push(c1);
@@ -611,15 +607,15 @@ class t_parser : public t_parser_base {
                 }
                 else if (c0 < 240) {
                     if (!has_remaining_characters(p, 3)) [[unlikely]] {
-                        fail(p, errc::unexpected_end);
+                        return fail(p, errc::unexpected_end);
                     }
                     unsigned char c1 = p[1];
                     if (c1 < 128 || c1 >= 192) {
-                        fail(p + 1, errc::invalid_, "utf8");
+                        return fail(p + 1, errc::invalid_, "utf8");
                     }
                     unsigned char c2 = p[2];
                     if (c2 < 128 || c2 >= 192) {
-                        fail(p + 2, errc::invalid_, "utf8");
+                        return fail(p + 2, errc::invalid_, "utf8");
                     }
                     psb.push(c0);
                     psb.push(c1);
@@ -628,19 +624,19 @@ class t_parser : public t_parser_base {
                 }
                 else if (c0 < 248) {
                     if (!has_remaining_characters(p, 4)) [[unlikely]] {
-                        fail(p, errc::unexpected_end);
+                        return fail(p, errc::unexpected_end);
                     }
                     unsigned char c1 = p[1];
                     if (c1 < 128 || c1 >= 192) {
-                        fail(p + 1, errc::invalid_, "utf8");
+                        return fail(p + 1, errc::invalid_, "utf8");
                     }
                     unsigned char c2 = p[2];
                     if (c2 < 128 || c2 >= 192) {
-                        fail(p + 2, errc::invalid_, "utf8");
+                        return fail(p + 2, errc::invalid_, "utf8");
                     }
                     unsigned char c3 = p[3];
                     if (c3 < 128 || c3 >= 192) {
-                        fail(p + 3, errc::invalid_, "utf8");
+                        return fail(p + 3, errc::invalid_, "utf8");
                     }
                     psb.push(c0);
                     psb.push(c1);
@@ -649,14 +645,14 @@ class t_parser : public t_parser_base {
                     p += 4;
                 }
                 else {
-                    fail(p, errc::invalid_, "utf8");
+                    return fail(p, errc::invalid_, "utf8");
                 }
                 break;
             }
         }
     }
 
-    NOINLINE const char* do_parse() {
+    const char* do_parse() {
         // init state machine
         auto p = m_text_begin;
 
@@ -666,6 +662,9 @@ class t_parser : public t_parser_base {
         if (0) {
         empty_array_or_element:
             p = skip_whitespace(p + 1); // assume *p == '['
+            if (!p) [[unlikely]] {
+                return nullptr;
+            }
             if (*p == ']') {
                 goto pop_array;
             }
@@ -676,6 +675,9 @@ class t_parser : public t_parser_base {
 
         empty_object_or_element:
             p = skip_whitespace(p + 1); // assume *p == '{'
+            if (!p) [[unlikely]] {
+                return nullptr;
+            }
             if (*p == '}') {
                 goto pop_object;
             }
@@ -691,6 +693,9 @@ class t_parser : public t_parser_base {
             }
 
             p = skip_whitespace(p);
+            if (!p) [[unlikely]] {
+                return nullptr;
+            }
 
             if (m_builder.current_compound_is_array()) {
                 if (*p == ']') {
@@ -699,7 +704,7 @@ class t_parser : public t_parser_base {
                 else {
                     // expect comma
                     if (*p != ',') [[unlikely]] {
-                        fail(p, errc::expected_, ",");
+                        return fail(p, errc::expected_, ",");
                     }
                     ++p;
                     goto next_element;
@@ -713,7 +718,7 @@ class t_parser : public t_parser_base {
                 else {
                     // expect comma
                     if (*p != ',') [[unlikely]] {
-                        fail(p, errc::expected_, ",");
+                        return fail(p, errc::expected_, ",");
                     }
                     ++p;
                     goto object_key;
@@ -735,15 +740,24 @@ class t_parser : public t_parser_base {
 
         object_key: {
             p = skip_whitespace(p);
+            if (!p) [[unlikely]] {
+                return nullptr;
+            }
             if (*p != '"') [[unlikely]] {
-                fail(p, errc::missing_object_key);
+                return fail(p, errc::missing_object_key);
             }
             buffer_range range;
             p = parse_string(p, range);
+            if (!p) [[unlikely]] {
+                return nullptr;
+            }
             m_builder.add_object_key(range);
             p = skip_whitespace(p);
+            if (!p) [[unlikely]] {
+                return nullptr;
+            }
             if (*p != ':') [[unlikely]] {
-                fail(p, errc::expected_, ":");
+                return fail(p, errc::expected_, ":");
             }
             ++p; // skip colon
             goto next_element;
@@ -752,18 +766,30 @@ class t_parser : public t_parser_base {
         // read element at p
         next_element:
             p = skip_whitespace(p);
+            if (!p) [[unlikely]] {
+                return nullptr;
+            }
 
             switch (*p) {
             case 'n':
                 p = parse_literal<'u', 'l', 'l'>(p);
+                if (!p) [[unlikely]] {
+                    return nullptr;
+                }
                 m_builder.template add_literal_element<pl_tag::null>();
                 break;
             case 'f':
                 p = parse_literal<'a', 'l', 's', 'e'>(p);
+                if (!p) [[unlikely]] {
+                    return nullptr;
+                }
                 m_builder.template add_literal_element<pl_tag::false_>();
                 break;
             case 't':
                 p = parse_literal<'r', 'u', 'e'>(p);
+                if (!p) [[unlikely]] {
+                    return nullptr;
+                }
                 m_builder.template add_literal_element<pl_tag::true_>();
                 break;
             case '0':
@@ -783,11 +809,17 @@ class t_parser : public t_parser_base {
                 else {
                     p = parse_number_custom(p);
                 }
+                if (!p) [[unlikely]] {
+                    return nullptr;
+                }
                 break;
             }
             case '"': {
                 buffer_range range;
                 p = parse_string(p, range);
+                if (!p) [[unlikely]] {
+                    return nullptr;
+                }
                 m_builder.add_string_element(range);
                 break;
             }
@@ -804,7 +836,7 @@ class t_parser : public t_parser_base {
                 goto empty_object_or_element;
             }
             default:
-                fail(p, errc::unexpected_, std::string_view(p, 1));
+                return fail(p, errc::unexpected_, std::string_view(p, 1));
             }
 
             goto compound_close_or_comma;
@@ -822,17 +854,15 @@ public:
     {}
 
     itlib::expected<const char*, parse_error> parse() {
-        // init error handling
-        if (setjmp(m_jmpbuf) > 0) {
+        auto p = do_parse();
+        if (!p) [[unlikely]] {
             return itlib::unexpected(parse_error::create(
                 "pojobuf::json",
                 m_error_code, std::string(m_error_arg),
                 m_text_begin, m_error_location
             ));
         }
-
-        // call a noinline function to keep parsing out of a "returns twice" context
-        return do_parse();
+        return p;
     }
 };
 
@@ -863,5 +893,3 @@ using parser_charconv_num = parser<true>;
 using parser_custom_num = parser<false>;
 
 } // namespace pojobuf::json
-
-PRAGMA_WARNING_POP

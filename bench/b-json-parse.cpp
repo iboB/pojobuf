@@ -156,12 +156,12 @@ int main(int argc, char* argv[]) {
         };
 
         add_benchmark("pojobuf-0", bench_pojobuf_0<false>);
-        add_benchmark("pojobuf-0 charconv", bench_pojobuf_0<true>);
+        //add_benchmark("pojobuf-0 charconv", bench_pojobuf_0<true>);
         add_benchmark("sajson-0", bench_sajson_0);
-        add_benchmark("simdjson-0", bench_simdjson_0);
-        add_benchmark("pojobuf-alloc", bench_pojobuf_alloc);
-        add_benchmark("sajson-alloc", bench_sajson_alloc);
-        add_benchmark("simdjson-alloc", bench_simdjson_alloc);
+        //add_benchmark("simdjson-0", bench_simdjson_0);
+        //add_benchmark("pojobuf-alloc", bench_pojobuf_alloc);
+        //add_benchmark("sajson-alloc", bench_sajson_alloc);
+        //add_benchmark("simdjson-alloc", bench_simdjson_alloc);
     }
 
     r.set_compare_results_across_samples(true);
