@@ -32,7 +32,7 @@ public:
     value(const value&) noexcept = default;
     value& operator=(const value&) noexcept = default;
 
-    bool is(pl_tag t) const noexcept { return m_tag == t; }
+    pl_tag tag() const noexcept { return m_tag; }
     value_type type() const noexcept { return value_type(m_tag); }
     const int64_t* data_ptr() const noexcept { return m_data_ptr; }
     const char* byte_ptr() const noexcept { return m_byte_ptr; }

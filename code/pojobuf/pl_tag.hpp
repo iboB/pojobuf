@@ -36,7 +36,7 @@ constexpr uint32_t operator*(pl_tag t) {
 
 // in buffers we pack array and object elements as `offset << pl_tag_bits | pl_tag`
 // since we use uint64_t for elements, this gives us 60 bits for the offset, which is plenty
-// see sajson-notes.md for more about this
+// see sajson.md for more about this
 inline constexpr uint32_t pl_tag_bits = 4;
 static_assert(*pl_tag::custom < (1 << pl_tag_bits));
 
