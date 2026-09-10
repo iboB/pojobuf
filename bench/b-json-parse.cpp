@@ -28,8 +28,25 @@ const input& get_input(picobench::state& state) {
     return *reinterpret_cast<const input*>(data);
 }
 
+// pojobuf and sajson can parse in place: given a mutable source buffer they own, they reuse
+// its bytes directly (no internal copy of string content). Given a const/borrowed source, they
+// have to copy string bytes into their own storage instead. This is a genuine behavioral
+// difference with a real, measurable cost (an extra O(source size) copy), so we benchmark both:
+// "mut" hoists ownership of a mutable copy of the source outside the timer (measuring parsing
+// only, no copy); "const" passes a const/borrowed source, so the internal copy happens inside
+// the timed region.
+//
+// simdjson's dom API has no such distinction: it always copies string content into its own
+// owned buffers regardless of whether the source is mutable, so there's nothing to compare
+// there -- see the single "simdjson" benchmark below.
+//
+// We don't separately benchmark allocation cost (i.e. buffer preallocated vs allocated by the
+// library) any more. In a tight, repeated-call harness like picobench, the system allocator
+// serves same-sized alloc/free pairs from its free lists with no syscalls and already-resident
+// pages, so that cost is not reliably measurable this way.
+
 template <bool UseCharconv>
-void bench_pojobuf_0(picobench::state& state) {
+void bench_pojobuf_mut(picobench::state& state) {
     auto content = get_input(state).content;
 
     pojobuf::bits::pod_vector buffer(pojobuf::json::get_buffer_size_for_json(content));
@@ -45,7 +62,7 @@ void bench_pojobuf_0(picobench::state& state) {
     state.set_result(root.get_compound_length());
 }
 
-void bench_pojobuf_alloc(picobench::state& state) {
+void bench_pojobuf_const(picobench::state& state) {
     auto& content = get_input(state).content;
 
     state.start_timer();
@@ -56,7 +73,7 @@ void bench_pojobuf_alloc(picobench::state& state) {
     state.set_result(root.get_compound_length());
 }
 
-void bench_sajson_0(picobench::state& state) {
+void bench_sajson_mut(picobench::state& state) {
     auto content = get_input(state).content;
 
     // note that we use the noinit allocator here
@@ -75,7 +92,7 @@ void bench_sajson_0(picobench::state& state) {
     state.set_result(root.get_length());
 }
 
-void bench_sajson_alloc(picobench::state& state) {
+void bench_sajson_const(picobench::state& state) {
     auto& content = get_input(state).content;
 
     state.start_timer();
@@ -89,32 +106,19 @@ void bench_sajson_alloc(picobench::state& state) {
     state.set_result(root.get_length());
 }
 
-void bench_simdjson_0(picobench::state& state) {
+// simdjson's dom API always copies string content into its own owned document buffer, whether
+// the source we hand it is mutable or not, so there's no mut/const split to benchmark here. We
+// just hoist all allocation (both the document's tape/string buffer and the parser's own
+// internal stage-1 buffers) out of the timed region, to measure parsing alone.
+void bench_simdjson(picobench::state& state) {
     auto& content = get_input(state).content;
 
     simdjson::dom::document doc;
-    std::ignore = doc.allocate(content.length());
-
-    state.start_timer();
-    simdjson::dom::parser parser;
-    auto root = parser.parse_into_document(doc, content);
-    state.stop_timer();
-
-    if (root.is_object()) {
-        state.set_result(root.get_object().size());
-    }
-    else if (root.is_array()) {
-        state.set_result(root.get_array().size());
-    }
-}
-
-void bench_simdjson_alloc(picobench::state& state) {
-    auto& content = get_input(state).content;
-
-    state.start_timer();
-    simdjson::dom::document doc;
     simdjson::dom::parser parser;
     std::ignore = doc.allocate(content.length());
+    std::ignore = parser.allocate(content.length());
+
+    state.start_timer();
     auto root = parser.parse_into_document(doc, content);
     state.stop_timer();
 
@@ -159,13 +163,12 @@ int main(int argc, char* argv[]) {
             r.add_benchmark(title, func).inputs({{1, reinterpret_cast<uintptr_t>(&i)}});
         };
 
-        add_benchmark("pojobuf-0", bench_pojobuf_0<false>);
-        add_benchmark("pojobuf-0 charconv", bench_pojobuf_0<true>);
-        add_benchmark("sajson-0", bench_sajson_0);
-        add_benchmark("simdjson-0", bench_simdjson_0);
-        add_benchmark("pojobuf-alloc", bench_pojobuf_alloc);
-        add_benchmark("sajson-alloc", bench_sajson_alloc);
-        add_benchmark("simdjson-alloc", bench_simdjson_alloc);
+        add_benchmark("pojobuf-mut", bench_pojobuf_mut<false>);
+        add_benchmark("pojobuf-mut charconv", bench_pojobuf_mut<true>);
+        add_benchmark("sajson-mut", bench_sajson_mut);
+        add_benchmark("pojobuf-const", bench_pojobuf_const);
+        add_benchmark("sajson-const", bench_sajson_const);
+        add_benchmark("simdjson", bench_simdjson);
     }
 
     r.set_compare_results_across_samples(true);
