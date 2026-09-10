@@ -40,7 +40,7 @@ PB_NOINLINE size_t run_pojobuf_once(std::string content) {
 }
 
 PB_NOINLINE size_t run_sajson_once(std::string content) {
-    itlib::pod_vector<size_t> buffer(content.size());
+    itlib::pod_vector<size_t, pojobuf::bits::noinit_pod_allocator> buffer(content.size());
 
     auto doc = sajson::parse(
         sajson::bounded_allocation{buffer.data(), buffer.size()},
