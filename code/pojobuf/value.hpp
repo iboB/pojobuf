@@ -232,6 +232,12 @@ public:
         return object_value_at_safe(index);
     }
 
+    class array_elems;
+    array_elems array_elements() const noexcept;
+
+    class object_elems;
+    object_elems object_elements() const noexcept;
+
 private:
     pl_tag m_tag;
     const int64_t* m_data_ptr;
