@@ -4,7 +4,7 @@
 #include <pojobuf/value.hpp>
 #include <pojobuf/buf_builder.hpp>
 #include <pojobuf/document.hpp>
-#include <pojobuf/document.parse.hpp>
+#include <pojobuf/document_parse.hpp>
 #include <pojobuf/json/parser.hpp>
 #include <pojobuf/json/util.hpp>
 #include <pojobuf/container_string_sink.hpp>

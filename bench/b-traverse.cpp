@@ -1,5 +1,5 @@
 #include <pojobuf/document.hpp>
-#include <pojobuf/document.parse.hpp>
+#include <pojobuf/document_parse.hpp>
 #include <pojobuf/json/parser.hpp>
 
 #include <boost/json.hpp>

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 //
 #include <pojobuf/document.hpp>
-#include <pojobuf/document.parse.hpp>
+#include <pojobuf/document_parse.hpp>
 #include <pojobuf/json/parser.hpp>
 
 #define SAJSON_UNSORTED_OBJECT_KEYS
