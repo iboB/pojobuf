@@ -9,6 +9,7 @@
 #include <sajson.h>
 
 #include <simdjson.h>
+#include <boost/json.hpp>
 
 #define PICOBENCH_IMPLEMENT
 #include <picobench/picobench.hpp>
@@ -36,9 +37,8 @@ const input& get_input(picobench::state& state) {
 // only, no copy); "const" passes a const/borrowed source, so the internal copy happens inside
 // the timed region.
 //
-// simdjson's dom API has no such distinction: it always copies string content into its own
-// owned buffers regardless of whether the source is mutable, so there's nothing to compare
-// there -- see the single "simdjson" benchmark below.
+// simdjson and Boost.json have no such distinction
+// they never touch the input buffer that's why their benchmarks are of a single flavor
 //
 // We don't separately benchmark allocation cost (i.e. buffer preallocated vs allocated by the
 // library) any more. In a tight, repeated-call harness like picobench, the system allocator
@@ -130,6 +130,23 @@ void bench_simdjson(picobench::state& state) {
     }
 }
 
+void bench_boost(picobench::state& state) {
+    auto& content = get_input(state).content;
+
+    boost::json::monotonic_resource mr(5 * content.size());
+
+    state.start_timer();
+    auto jv = boost::json::parse(content, &mr);
+    state.stop_timer();
+
+    if (jv.is_object()) {
+        state.set_result(jv.as_object().size());
+    }
+    else if (jv.is_array()) {
+        state.set_result(jv.as_array().size());
+    }
+}
+
 int main(int argc, char* argv[]) {
     //const char* files[] = { JSON_TEST_DATA_JSON_FILES };
     // let's only benchmark the longer files
@@ -169,6 +186,7 @@ int main(int argc, char* argv[]) {
         add_benchmark("pojobuf-const", bench_pojobuf_const);
         add_benchmark("sajson-const", bench_sajson_const);
         add_benchmark("simdjson", bench_simdjson);
+        add_benchmark("boost", bench_boost);
     }
 
     r.set_compare_results_across_samples(true);
