@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 //
 #include <pojobuf/value.hpp>
-#include <pojobuf/docbuild.hpp>
+#include <pojobuf/buf_builder.hpp>
 #include <pojobuf/json/parser.hpp>
 #include <pojobuf/json/util.hpp>
 #include <pojobuf/json/writer.hpp>
@@ -75,13 +75,13 @@ int main() {
     //std::vector<int64_t> buffer(pojobuf::json::get_buffer_size_for_json(sizeof(json)));
     //[[maybe_unused]] std::vector<int64_t> scratch_buf(pojobuf::json::get_scratch_buffer_size_for_json(json));
 
-    //auto data_alloc = pojobuf::docbuild::single_buf_nocheck_data_alloc::from_container(buffer);
-    ////auto data_alloc = pojobuf::docbuild::multi_buf_nocheck_data_alloc::from_containers(buffer, scratch_buf);
+    //auto data_alloc = pojobuf::single_buf_nocheck_data_alloc::from_container(buffer);
+    ////auto data_alloc = pojobuf::multi_buf_nocheck_data_alloc::from_containers(buffer, scratch_buf);
 
-    ////pojobuf::docbuild::mutable_source_byte_alloc byte_alloc(json);
-    //pojobuf::docbuild::valuebuf_byte_alloc byte_alloc(data_alloc);
+    ////pojobuf::mutable_source_byte_alloc byte_alloc(json);
+    //pojobuf::valuebuf_byte_alloc byte_alloc(data_alloc);
 
-    //pojobuf::docbuild::buf_builder builder(data_alloc, byte_alloc);
+    //pojobuf::buf_builder builder(data_alloc, byte_alloc);
 
     //pojobuf::json::parser_charconv_num::parse(json, builder);
 

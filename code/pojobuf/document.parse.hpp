@@ -3,7 +3,7 @@
 //
 #pragma once
 #include "document.hpp"
-#include "docbuild.hpp"
+#include "buf_builder.hpp"
 #include "alloc.hpp"
 #include "parse_error.hpp"
 #include "parse_alloc_strategy.hpp"
@@ -19,8 +19,6 @@ template <
     typename Source
 >
 auto document_parse_with(Source&& source, size_t max_unsorted_obj_records = size_t(-1)) {
-    using namespace docbuild;
-
     using byte_buf_type = std::conditional_t<
         std::is_same_v<std::decay_t<DocByteBuf>, bits::deduce_t>,
         std::decay_t<Source>,

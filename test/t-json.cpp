@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 //
 #include <pojobuf/value.hpp>
-#include <pojobuf/docbuild.hpp>
+#include <pojobuf/buf_builder.hpp>
 #include <pojobuf/document.hpp>
 #include <pojobuf/document.parse.hpp>
 #include <pojobuf/json/parser.hpp>
@@ -126,7 +126,7 @@ void t(std::string_view json, uint32_t flags = test_flags_default, std::optional
         auto json_copy = std::string(json);
         auto data_alloc = pojobuf::alloc::single_buf_nocheck_data_alloc::from_container(buf);
         pojobuf::alloc::mutable_source_byte_alloc byte_alloc(json_copy.data());
-        pojobuf::docbuild::buf_builder builder(data_alloc, byte_alloc);
+        pojobuf::buf_builder builder(data_alloc, byte_alloc);
         auto root = parse_and_get_root<false>(json_copy, builder);
         rcmp(root, oracle);
     }
@@ -142,7 +142,7 @@ void t(std::string_view json, uint32_t flags = test_flags_default, std::optional
     {
         auto data_alloc = pojobuf::alloc::multi_buf_nocheck_data_alloc::from_containers(buf, scratch_buf);
         pojobuf::alloc::valuebuf_byte_alloc byte_alloc(data_alloc);
-        pojobuf::docbuild::buf_builder builder(data_alloc, byte_alloc);
+        pojobuf::buf_builder builder(data_alloc, byte_alloc);
         auto root = parse_and_get_root<true>(json, builder);
         rcmp(root, oracle);
     }
