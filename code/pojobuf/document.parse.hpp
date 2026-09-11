@@ -6,35 +6,10 @@
 #include "docbuild.hpp"
 #include "parse_error.hpp"
 #include "parse_alloc_strategy.hpp"
+#include "bits/deduce_t.hpp"
 #include <itlib/expected.hpp>
 
 namespace pojobuf {
-
-//template <typename Parser, typename ByteBuf = no_buf>
-//itlib::expected<document<ByteBuf>, parse_error> document_parse(std::string_view source, size_t max_unsorted_obj_records = size_t(-1)) {
-//    using namespace docbuild;
-//    using data_alloc_type = single_buf_nocheck_data_alloc;
-//    using builder_type = buf_builder<data_alloc_type, valuebuf_byte_alloc<data_alloc_type>>;
-//
-//    const auto buf_size = Parser::get_buffer_size_for_text(source);
-//    bits::pod_vector buffer(buf_size);
-//
-//    auto data_alloc = single_buf_nocheck_data_alloc::from_container(buffer);
-//    valuebuf_byte_alloc byte_alloc(data_alloc);
-//    builder_type builder(data_alloc, byte_alloc, max_unsorted_obj_records);
-//
-//    auto r = Parser::parse(source, builder);
-//    if (!r) {
-//        return itlib::unexpected(std::move(r).error());
-//    }
-//    buffer.resize(data_alloc.get_value_offset());
-//
-//    return document<ByteBuf>(std::move(buffer), ByteBuf{}, nullptr, builder.finalize());
-//}
-
-namespace bits {
-struct deduce_t {};
-}
 
 template <
     typename Parser,
