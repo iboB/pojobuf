@@ -50,8 +50,8 @@ void bench_pojobuf_mut(picobench::state& state) {
     auto content = get_input(state).content;
 
     pojobuf::bits::pod_vector buffer(pojobuf::json::get_buffer_size_for_json(content));
-    auto data_alloc = pojobuf::docbuild::single_buf_nocheck_data_alloc::from_container(buffer);
-    pojobuf::docbuild::mutable_source_byte_alloc byte_alloc(content.data());
+    auto data_alloc = pojobuf::alloc::single_buf_nocheck_data_alloc::from_container(buffer);
+    pojobuf::alloc::mutable_source_byte_alloc byte_alloc(content.data());
     pojobuf::docbuild::buf_builder builder(data_alloc, byte_alloc);
 
     state.start_timer();

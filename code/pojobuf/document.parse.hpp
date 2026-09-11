@@ -4,6 +4,7 @@
 #pragma once
 #include "document.hpp"
 #include "docbuild.hpp"
+#include "alloc.hpp"
 #include "parse_error.hpp"
 #include "parse_alloc_strategy.hpp"
 #include "bits/deduce_t.hpp"
@@ -32,13 +33,13 @@ auto document_parse_with(Source&& source, size_t max_unsorted_obj_records = size
     const auto buf_size = Parser::get_buffer_size_for_text(source_sv);
     bits::pod_vector buffer(buf_size);
 
-    auto data_alloc = single_buf_nocheck_data_alloc::from_container(buffer);
+    auto data_alloc = alloc::single_buf_nocheck_data_alloc::from_container(buffer);
     auto byte_alloc = [&]() {
         if constexpr (Strategy == parse_alloc_strategy::embed_bytes_in_data) {
-            return valuebuf_byte_alloc(data_alloc);
+            return alloc::valuebuf_byte_alloc(data_alloc);
         }
         else {
-            return mutable_source_byte_alloc(source.data());
+            return alloc::mutable_source_byte_alloc(source.data());
         }
     }();
 
