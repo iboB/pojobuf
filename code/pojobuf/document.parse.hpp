@@ -77,7 +77,7 @@ auto document_parse_with(Source&& source, size_t max_unsorted_obj_records = size
 
     auto root_pl = builder.finalize();
     if constexpr (Strategy == parse_alloc_strategy::embed_bytes_in_data) {
-        return ret_t{ document<byte_buf_type>(std::move(buffer), byte_buf_type{}, nullptr, root_pl) };
+        return ret_t{document<byte_buf_type>(std::move(buffer), byte_buf_type{}, nullptr, root_pl)};
     }
     else if constexpr (Strategy == parse_alloc_strategy::take_source) {
         // we can take the source as is, no need to copy it
