@@ -37,19 +37,19 @@ public:
     const int64_t* data_ptr() const noexcept { return m_data_ptr; }
     const char* byte_ptr() const noexcept { return m_byte_ptr; }
 
-    bool boolean_value() const noexcept {
+    FORCE_INLINE bool boolean_value() const noexcept {
         assert(type().is_boolean());
         return type().is_true();
     }
-    int32_t int32_value() const noexcept {
+    FORCE_INLINE int32_t int32_value() const noexcept {
         assert(type().is_integer());
         return int32_t(*m_data_ptr);
     }
-    int64_t int64_value() const noexcept {
+    FORCE_INLINE int64_t int64_value() const noexcept {
         assert(type().is_integer());
         return *m_data_ptr;
     }
-    int64_t integer_value() const noexcept {
+    FORCE_INLINE int64_t integer_value() const noexcept {
         return int64_value();
     }
 
@@ -60,13 +60,13 @@ public:
     //  * you've checked that type is real
     //  * you know for a fact this is not a whole number
     //  * you know that the produced of this value has put a real number here even if whole
-    double real_value() const noexcept {
+    FORCE_INLINE double real_value() const noexcept {
         assert(type().is_real());
         static_assert(sizeof(double) == sizeof(int64_t));
         return std::bit_cast<double>(*m_data_ptr);
     }
 
-    double real_value_safe() const noexcept {
+    FORCE_INLINE double real_value_safe() const noexcept {
         assert(type().is_number());
         if (type().is_integer()) {
             return double(*m_data_ptr);
@@ -75,15 +75,15 @@ public:
             return real_value();
         }
     }
-    double f64_value() const noexcept {
+    FORCE_INLINE double f64_value() const noexcept {
         return real_value_safe();
     }
-    float f32_value() const noexcept {
+    FORCE_INLINE float f32_value() const noexcept {
         return float(real_value_safe());
     }
 
     // truncates fractional values
-    int64_t integer_value_safe() const noexcept {
+    FORCE_INLINE int64_t integer_value_safe() const noexcept {
         assert(type().is_number());
         if (type().is_integer()) {
             return *m_data_ptr;
@@ -93,45 +93,45 @@ public:
         }
     }
 
-    size_t buffer_size() const noexcept {
+    FORCE_INLINE size_t buffer_size() const noexcept {
         assert(type().is_buffer());
         return size_t(m_data_ptr[1] - m_data_ptr[0]);
     }
 
-    std::span<const char> buffer_value() const noexcept {
+    FORCE_INLINE std::span<const char> buffer_value() const noexcept {
         assert(type().is_buffer());
         return std::span<const char>(m_byte_ptr + m_data_ptr[0], m_byte_ptr + m_data_ptr[1]);
     }
 
-    size_t blob_size() const noexcept {
+    FORCE_INLINE size_t blob_size() const noexcept {
         return buffer_size();
     }
 
-    std::span<const std::byte> blob_value() const noexcept {
+    FORCE_INLINE std::span<const std::byte> blob_value() const noexcept {
         assert(type().is_buffer());
         return as_bytes(buffer_value());
     }
 
-    size_t string_length() const noexcept {
+    FORCE_INLINE size_t string_length() const noexcept {
         return buffer_size();
     }
 
-    std::string_view string_value() const noexcept {
+    FORCE_INLINE std::string_view string_value() const noexcept {
         assert(type().is_buffer());
         return std::string_view(m_byte_ptr + m_data_ptr[0], m_byte_ptr + m_data_ptr[1]);
     }
 
-    size_t compound_length() const noexcept {
+    FORCE_INLINE size_t compound_length() const noexcept {
         assert(type().is_compound());
         return size_t(*m_data_ptr);
     }
 
-    size_t array_length() const noexcept {
+    FORCE_INLINE size_t array_length() const noexcept {
         assert(type().is_array());
         return compound_length();
     }
 
-    value array_element_at(size_t index) const noexcept {
+    FORCE_INLINE value array_element_at(size_t index) const noexcept {
         assert(type().is_array());
         assert(index < compound_length());
         const auto pl = m_data_ptr[1 + index];
@@ -139,7 +139,7 @@ public:
     }
 
     // return undefined when out of bounds
-    value array_element_at_safe(size_t index) const noexcept {
+    FORCE_INLINE value array_element_at_safe(size_t index) const noexcept {
         assert(type().is_array());
         if (index >= compound_length()) {
             return {};
@@ -147,26 +147,26 @@ public:
         return array_element_at(index);
     }
 
-    size_t object_length() const noexcept {
+    FORCE_INLINE size_t object_length() const noexcept {
         assert(type().is_object());
         return compound_length();
     }
 
-    std::string_view object_key_at(size_t index) const noexcept {
+    FORCE_INLINE std::string_view object_key_at(size_t index) const noexcept {
         assert(type().is_object());
         assert(index < compound_length());
         const auto& r = get_object_elems()[index];
         return std::string_view(m_byte_ptr + r.key_start, m_byte_ptr + r.key_end);
     }
 
-    value object_value_at(size_t index) const noexcept {
+    FORCE_INLINE value object_value_at(size_t index) const noexcept {
         assert(type().is_object());
         assert(index < compound_length());
         const auto& r = get_object_elems()[index];
         return value(r.value_payload, m_data_ptr, m_byte_ptr);
     }
 
-    value object_value_at_safe(size_t index) const noexcept {
+    FORCE_INLINE value object_value_at_safe(size_t index) const noexcept {
         assert(type().is_object());
         if (index >= compound_length()) {
             return {};
@@ -176,7 +176,7 @@ public:
 
     using kv = std::pair<std::string_view, value>;
 
-    kv object_element_at(size_t index) const noexcept {
+    FORCE_INLINE kv object_element_at(size_t index) const noexcept {
         assert(type().is_object());
         assert(index < compound_length());
         const auto& r = get_object_elems()[index];
@@ -186,7 +186,7 @@ public:
         };
     }
 
-    kv object_element_at_safe(size_t index) const noexcept {
+    FORCE_INLINE kv object_element_at_safe(size_t index) const noexcept {
         assert(type().is_object());
         if (index >= compound_length()) {
             return {};
@@ -219,14 +219,14 @@ public:
         return length;
     }
 
-    value object_value_at_key(std::string_view key) const noexcept {
+    FORCE_INLINE value object_value_at_key(std::string_view key) const noexcept {
         assert(type().is_object());
         const auto index = find_object_key(key);
         assert(index < compound_length());
         return object_value_at(index);
     }
 
-    value object_value_at_key_safe(std::string_view key) const noexcept {
+    FORCE_INLINE value object_value_at_key_safe(std::string_view key) const noexcept {
         assert(type().is_object());
         const auto index = find_object_key(key);
         return object_value_at_safe(index);
@@ -237,7 +237,7 @@ private:
     const int64_t* m_data_ptr;
     const char* m_byte_ptr;
 
-    const bufutil::object_elem* get_object_elems() const noexcept {
+    FORCE_INLINE const bufutil::object_elem* get_object_elems() const noexcept {
         assert(type().is_object());
         return reinterpret_cast<const bufutil::object_elem*>(m_data_ptr + 1);
     }
