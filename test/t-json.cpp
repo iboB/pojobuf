@@ -25,20 +25,20 @@ void rcmp(pojobuf::value val, const nljson& oracle) {
     switch (*val.type()) {
     case array: {
         CHECK(oracle.is_array());
-        CHECK(val.get_compound_length() == oracle.size());
-        for (size_t i = 0; i < val.get_compound_length(); ++i) {
-            rcmp(val.get_array_element(i), oracle[i]);
+        CHECK(val.compound_length() == oracle.size());
+        for (size_t i = 0; i < val.compound_length(); ++i) {
+            rcmp(val.array_element_at(i), oracle[i]);
         }
         break;
     }
     case object: {
         // ordered json must be in the same order
         CHECK(oracle.is_object());
-        CHECK(val.get_compound_length() == oracle.size());
+        CHECK(val.compound_length() == oracle.size());
         size_t i = 0;
         for (auto& [k, v] : oracle.items()) {
-            CHECK(val.get_object_key(i) == k);
-            rcmp(val.get_object_value(i), v);
+            CHECK(val.object_key_at(i) == k);
+            rcmp(val.object_value_at(i), v);
             ++i;
         }
         break;
@@ -46,25 +46,25 @@ void rcmp(pojobuf::value val, const nljson& oracle) {
     case sorted_object: {
         // compare ignoring order, since sorted_object is sorted by key
         CHECK(oracle.is_object());
-        CHECK(val.get_compound_length() == oracle.size());
-        for (size_t i = 0; i < val.get_compound_length(); ++i) {
-            auto key = val.get_object_key(i);
+        CHECK(val.compound_length() == oracle.size());
+        for (size_t i = 0; i < val.compound_length(); ++i) {
+            auto key = val.object_key_at(i);
             CHECK(oracle.contains(key));
-            rcmp(val.get_object_value(i), oracle[key]);
+            rcmp(val.object_value_at(i), oracle[key]);
         }
         break;
     }
     case string:
         CHECK(oracle.is_string());
-        CHECK(val.get_string_value() == oracle.get<std::string_view>());
+        CHECK(val.string_value() == oracle.get<std::string_view>());
         break;
     case int32:
         CHECK(oracle.is_number_integer());
-        CHECK(val.get_int32_value() == oracle.get<int32_t>());
+        CHECK(val.int32_value() == oracle.get<int32_t>());
         break;
     case int64:
         CHECK(oracle.is_number_integer());
-        CHECK(val.get_int64_value() == oracle.get<int64_t>());
+        CHECK(val.int64_value() == oracle.get<int64_t>());
         break;
     case real:
         CHECK(oracle.is_number());
@@ -72,7 +72,7 @@ void rcmp(pojobuf::value val, const nljson& oracle) {
             auto i64 = oracle.get<int64_t>();
             CHECK((i64 > std::numeric_limits<int32_t>::max() || i64 < std::numeric_limits<int32_t>::min()));
         }
-        CHECK(val.get_real_value() == oracle.get<double>());
+        CHECK(val.real_value() == oracle.get<double>());
         break;
     case true_:
         CHECK(oracle.is_boolean());
@@ -254,9 +254,9 @@ void check_find_object_key(pojobuf::value obj, bool expect_sorted) {
     };
     for (auto& p : present) {
         const auto i = obj.find_object_key(p.key);
-        REQUIRE(i < obj.get_compound_length());
-        CHECK(obj.get_object_key(i) == p.key);
-        CHECK(obj.get_object_value(i).get_int32_value() == p.value);
+        REQUIRE(i < obj.compound_length());
+        CHECK(obj.object_key_at(i) == p.key);
+        CHECK(obj.object_value_at(i).int32_value() == p.value);
     }
 
     // "": no key is empty
@@ -264,7 +264,7 @@ void check_find_object_key(pojobuf::value obj, bool expect_sorted) {
     // "bbz": same length as most keys, but different content
     // "zzzz", "aaaaa": lengths which don't match any key
     for (auto missing : {"", "b", "bbz", "zzzz", "aaaaa"}) {
-        CHECK(obj.find_object_key(missing) == obj.get_compound_length());
+        CHECK(obj.find_object_key(missing) == obj.compound_length());
     }
 }
 

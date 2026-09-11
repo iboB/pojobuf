@@ -23,16 +23,16 @@ void value_transfer(Builder& b, const value& v) {
         b.template add_literal_element<true_>();
     break;
     case int32:
-        b.add_number_element(v.get_int32_value());
+        b.add_number_element(v.int32_value());
     break;
     case int64:
-        b.add_number_element(v.get_int64_value());
+        b.add_number_element(v.int64_value());
     break;
     case real:
-        b.add_number_element(v.get_real_value());
+        b.add_number_element(v.real_value());
     break;
     case string: {
-        auto range = b.push_string(v.get_string_value());
+        auto range = b.push_string(v.string_value());
         b.add_string_element(range);
     }
     break;

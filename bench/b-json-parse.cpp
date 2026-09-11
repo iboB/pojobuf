@@ -59,7 +59,7 @@ void bench_pojobuf_mut(picobench::state& state) {
     auto root = pojobuf::value(builder.finalize(), buffer.data(), content.data());
     state.stop_timer();
 
-    state.set_result(root.get_compound_length());
+    state.set_result(root.compound_length());
 }
 
 void bench_pojobuf_const(picobench::state& state) {
@@ -70,7 +70,7 @@ void bench_pojobuf_const(picobench::state& state) {
     auto root = doc->root();
     state.stop_timer();
 
-    state.set_result(root.get_compound_length());
+    state.set_result(root.compound_length());
 }
 
 void bench_sajson_mut(picobench::state& state) {

@@ -17,9 +17,9 @@ void rdump(pojobuf::value val) {
     switch (*val.type()) {
     case array: {
         std::cout << "[";
-        for (size_t i = 0; i < val.get_compound_length(); ++i) {
-            rdump(val.get_array_element(i));
-            if (i < val.get_compound_length() - 1) {
+        for (size_t i = 0; i < val.compound_length(); ++i) {
+            rdump(val.array_element_at(i));
+            if (i < val.compound_length() - 1) {
                 std::cout << ", ";
             }
         }
@@ -29,11 +29,11 @@ void rdump(pojobuf::value val) {
     case object:
     case sorted_object: {
         std::cout << "{";
-        for (size_t i = 0; i < val.get_compound_length(); ++i) {
-            auto key = val.get_object_key(i);
+        for (size_t i = 0; i < val.compound_length(); ++i) {
+            auto [key, value] = val.object_element_at(i);
             std::cout << key << ": ";
-            rdump(val.get_object_value(i));
-            if (i < val.get_compound_length() - 1) {
+            rdump(value);
+            if (i < val.compound_length() - 1) {
                 std::cout << ", ";
             }
         }
@@ -41,13 +41,13 @@ void rdump(pojobuf::value val) {
         break;
     }
     case string:
-        std::cout << "\"" << val.get_string_value() << "\"";
+        std::cout << "\"" << val.string_value() << "\"";
         break;
     case int32:
-        std::cout << val.get_int32_value();
+        std::cout << val.int32_value();
         break;
     case real:
-        std::cout << val.get_real_value();
+        std::cout << val.real_value();
         break;
     case true_:
         std::cout << "true";
