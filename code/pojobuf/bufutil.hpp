@@ -7,13 +7,16 @@
 #include <cstring>
 #include <string_view>
 
-namespace pojobuf::docstore {
+namespace pojobuf::bufutil {
 
 constexpr pl_tag get_tag_from_payload(int64_t payload) {
     return pl_tag(payload & ((1 << pl_tag_bits) - 1));
 }
 constexpr int64_t get_offset_from_payload(int64_t payload) {
     return payload >> pl_tag_bits;
+}
+constexpr int64_t make_payload(pl_tag t, int64_t value) {
+    return (value << pl_tag_bits) | int64_t(t);
 }
 
 struct object_elem {
@@ -46,4 +49,4 @@ struct object_key_cmp {
     }
 };
 
-} // namespace pojobuf::docstore
+} // namespace pojobuf::bufutil

@@ -3,7 +3,7 @@
 //
 #pragma once
 #include "pl_tag.hpp"
-#include "docstore.hpp"
+#include "bufutil.hpp"
 #include "buffer_range.hpp"
 #include "bits/imath.hpp"
 #include <splat/inline.h>
@@ -11,11 +11,7 @@
 
 namespace pojobuf::docbuild {
 
-using namespace docstore;
-
-constexpr int64_t make_payload(pl_tag t, int64_t value) {
-    return (value << pl_tag_bits) | int64_t(t);
-}
+using namespace bufutil;
 
 template <typename DataAlloc, typename ByteAlloc>
 class buf_builder {
