@@ -14,13 +14,13 @@ void value_transfer(Builder& b, const value& v) {
     using enum pl_tag;
     switch (v.tag()) {
     case null:
-        b.add_literal_element<null>();
+        b.template add_literal_element<null>();
     break;
     case false_:
-        b.add_literal_element<false_>();
+        b.template add_literal_element<false_>();
     break;
     case true_:
-        b.add_literal_element<true_>();
+        b.template add_literal_element<true_>();
     break;
     case int32:
         b.add_number_element(v.get_int32_value());
@@ -37,18 +37,18 @@ void value_transfer(Builder& b, const value& v) {
     }
     break;
     case array: {
-        b.open_compound_element<array>();
-        b.close_compound_element<array>();
+        b.template open_compound_element<array>();
+        b.template close_compound_element<array>();
     }
     break;
     case object: {
-        b.open_compound_element<object>();
-        b.close_compound_element<object>();
+        b.template open_compound_element<object>();
+        b.template close_compound_element<object>();
     }
     break;
     case sorted_object: {
-        b.open_compound_element<sorted_object>();
-        b.close_compound_element<sorted_object>();
+        b.template open_compound_element<sorted_object>();
+        b.template close_compound_element<sorted_object>();
     }
     break;
     default:
