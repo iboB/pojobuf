@@ -138,9 +138,9 @@ void t(std::string_view json, uint32_t flags = test_flags_default, std::optional
         rcmp(result->root(), oracle);
     }
 
-    // multi buf, const str
+    // dual buf, const str
     {
-        auto data_alloc = pojobuf::alloc::multi_buf_nocheck_data_alloc::from_containers(buf, scratch_buf);
+        auto data_alloc = pojobuf::alloc::dual_buf_nocheck_data_alloc::from_containers(buf, scratch_buf);
         pojobuf::alloc::valuebuf_byte_alloc byte_alloc(data_alloc);
         pojobuf::buf_builder builder(data_alloc, byte_alloc);
         auto root = parse_and_get_root<true>(json, builder);

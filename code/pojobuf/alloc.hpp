@@ -145,7 +145,7 @@ public:
 // allocate and use the front of the buffer for values
 // use another buffer for scratch space for payloads
 // assume that both buffers are large enough to hold all values and payloads
-struct multi_buf_nocheck_data_alloc {
+struct dual_buf_nocheck_data_alloc {
     static constexpr bool is_single_buf = false;
 
     int64_t* val_buffer;
@@ -155,8 +155,8 @@ struct multi_buf_nocheck_data_alloc {
     int64_t* ppl;
 
     template <typename C1, typename C2>
-    static multi_buf_nocheck_data_alloc from_containers(C1& val, C2& pl) noexcept {
-        multi_buf_nocheck_data_alloc ret;
+    static dual_buf_nocheck_data_alloc from_containers(C1& val, C2& pl) noexcept {
+        dual_buf_nocheck_data_alloc ret;
         ret.pval = ret.val_buffer = val.data();
         ret.ppl = ret.pl_buffer = pl.data();
         return ret;

@@ -78,7 +78,7 @@ int main() {
     [[maybe_unused]] std::vector<int64_t> scratch_buf(pojobuf::json::get_scratch_buffer_size_for_json(json));
 
     auto data_alloc = pojobuf::alloc::single_buf_nocheck_data_alloc::from_container(buffer);
-    ////auto data_alloc = pojobuf::multi_buf_nocheck_data_alloc::from_containers(buffer, scratch_buf);
+    ////auto data_alloc = pojobuf::dual_buf_nocheck_data_alloc::from_containers(buffer, scratch_buf);
 
     ////pojobuf::mutable_source_byte_alloc byte_alloc(json);
     pojobuf::alloc::valuebuf_byte_alloc byte_alloc(data_alloc);
