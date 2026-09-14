@@ -3,7 +3,7 @@
 //
 #pragma once
 #include "pl_tag.hpp"
-#include "bufutil.hpp"
+#include "valutil.hpp"
 #include "bytes_range.hpp"
 #include <splat/inline.h>
 #include <cassert>
@@ -49,7 +49,7 @@ public:
 
     template <typename Num>
     void add_number_element(Num n) {
-        using bufutil::make_payload;
+        using valutil::make_payload;
         const auto value_offset = adata.get_value_offset();
 
         static_assert(std::is_integral_v<Num> || std::is_floating_point_v<Num>);
@@ -73,7 +73,7 @@ public:
         auto ptr = adata.alloc_value(2);
         ptr[0] = range.begin;
         ptr[1] = range.end;
-        *adata.alloc_payload() = bufutil::make_payload(pl_tag::string, value_offset);
+        *adata.alloc_payload() = valutil::make_payload(pl_tag::string, value_offset);
     }
 
     template <pl_tag Tag>
@@ -82,7 +82,7 @@ public:
         // so that we can backtrack appropriately
         // it will subsequently be overwritten with the actual computed payload of the compound type
         static_assert(Tag == pl_tag::array || Tag == pl_tag::object);
-        *adata.alloc_payload() = bufutil::make_payload(current_compound_tag, current_compound_base);
+        *adata.alloc_payload() = valutil::make_payload(current_compound_tag, current_compound_base);
         current_compound_tag = Tag;
         current_compound_base = adata.get_cur_payload_offset();
     }
@@ -129,7 +129,7 @@ private:
 
     template <pl_tag Tag>
     void close_compound_element_single_buf() {
-        using namespace bufutil;
+        using namespace valutil;
 
         static_assert(Tag == pl_tag::array || Tag == pl_tag::object);
 
@@ -210,7 +210,7 @@ private:
 
     template <pl_tag Tag>
     void close_compound_element_fwd() {
-        using namespace bufutil;
+        using namespace valutil;
         static_assert(Tag == pl_tag::array || Tag == pl_tag::object);
 
         const auto pl_head = adata.get_payload_buffer_ptr() + current_compound_base;

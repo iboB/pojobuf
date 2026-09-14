@@ -4,7 +4,7 @@
 #pragma once
 #include "value_type.hpp"
 #include "pl_tag.hpp"
-#include "bufutil.hpp"
+#include "valutil.hpp"
 
 #include <bit>
 #include <span>
@@ -24,8 +24,8 @@ public:
     value() noexcept : m_tag(pl_tag::undefined), m_data_ptr(nullptr), m_byte_ptr(nullptr) {}
 
     explicit value(int64_t payload, const int64_t* parent_data_ptr, const char* byte_ptr)
-        : m_tag(bufutil::get_tag_from_payload(payload))
-        , m_data_ptr(parent_data_ptr + bufutil::get_offset_from_payload(payload))
+        : m_tag(valutil::get_tag_from_payload(payload))
+        , m_data_ptr(parent_data_ptr + valutil::get_offset_from_payload(payload))
         , m_byte_ptr(byte_ptr)
     {}
 
@@ -196,7 +196,7 @@ public:
 
     // return index of key or object size if it doesn't exist
     FORCE_INLINE size_t find_object_key(std::string_view key) const noexcept {
-        using namespace bufutil;
+        using namespace valutil;
         assert(type().is_object());
 
         const auto length = compound_length();
@@ -243,17 +243,17 @@ private:
     const int64_t* m_data_ptr;
     const char* m_byte_ptr;
 
-    FORCE_INLINE const bufutil::object_elem* get_object_elems() const noexcept {
+    FORCE_INLINE const valutil::object_elem* get_object_elems() const noexcept {
         assert(type().is_object());
-        return reinterpret_cast<const bufutil::object_elem*>(m_data_ptr + 1);
+        return reinterpret_cast<const valutil::object_elem*>(m_data_ptr + 1);
     }
 
     NOINLINE size_t find_sorted_object_key(
         std::string_view key,
-        const bufutil::object_elem* elems,
+        const valutil::object_elem* elems,
         size_t length
     ) const noexcept {
-        using namespace bufutil;
+        using namespace valutil;
 
         auto key_eq = [&](const object_elem& r) FORCE_INLINE_LAMBDA {
             auto len = size_t(r.key_end - r.key_start);

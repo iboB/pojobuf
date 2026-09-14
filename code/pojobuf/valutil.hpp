@@ -7,7 +7,7 @@
 #include <cstring>
 #include <string_view>
 
-namespace pojobuf::bufutil {
+namespace pojobuf::valutil {
 
 constexpr pl_tag get_tag_from_payload(int64_t payload) {
     return pl_tag(payload & ((1 << pl_tag_bits) - 1));
@@ -49,4 +49,4 @@ struct object_key_cmp {
     }
 };
 
-} // namespace pojobuf::bufutil
+} // namespace pojobuf::valutil

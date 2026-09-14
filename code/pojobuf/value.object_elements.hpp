@@ -26,11 +26,11 @@ public:
     }
 
     class iterator {
-        const bufutil::object_elem* m_ptr;
+        const valutil::object_elem* m_ptr;
         const int64_t* m_data_ptr;
         const char* m_byte_ptr;
     public:
-        iterator(const bufutil::object_elem* ptr, const int64_t* data_ptr, const char* byte_ptr)
+        iterator(const valutil::object_elem* ptr, const int64_t* data_ptr, const char* byte_ptr)
             : m_ptr(ptr)
             , m_data_ptr(data_ptr)
             , m_byte_ptr(byte_ptr)
