@@ -4,7 +4,7 @@
 #pragma once
 #include "pl_tag.hpp"
 #include "bufutil.hpp"
-#include "buffer_range.hpp"
+#include "bytes_range.hpp"
 #include <splat/inline.h>
 #include <cassert>
 
@@ -68,7 +68,7 @@ public:
         }
     }
 
-    void add_string_element(const buffer_range& range) {
+    void add_string_element(const bytes_range& range) {
         const auto value_offset = adata.get_value_offset();
         auto ptr = adata.alloc_value(2);
         ptr[0] = range.begin;
@@ -87,7 +87,7 @@ public:
         current_compound_base = adata.get_cur_payload_offset();
     }
 
-    void add_object_key(const buffer_range& range) {
+    void add_object_key(const bytes_range& range) {
         *adata.alloc_payload() = range.begin;
         *adata.alloc_payload() = range.end;
     }
@@ -112,16 +112,16 @@ public:
     }
 
     using piecewise_string_builder = typename ByteAlloc::piecewise_string_builder;
-    FORCE_INLINE buffer_range push_string(const char* begin, const char* end) {
+    FORCE_INLINE bytes_range push_string(const char* begin, const char* end) {
         return abyte.push_string(begin, end);
     }
-    FORCE_INLINE buffer_range push_internal_string(const char* begin, const char* end) {
+    FORCE_INLINE bytes_range push_internal_string(const char* begin, const char* end) {
         return abyte.push_internal_string(begin, end);
     }
     FORCE_INLINE piecewise_string_builder get_piecewise_string_builder(const char* simple_begin, const char* begin) {
         return abyte.get_piecewise_string_builder(simple_begin, begin);
     }
-    FORCE_INLINE buffer_range push_string(const piecewise_string_builder& psb) noexcept {
+    FORCE_INLINE bytes_range push_string(const piecewise_string_builder& psb) noexcept {
         return abyte.push_string(psb);
     }
 

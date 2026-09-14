@@ -6,7 +6,7 @@
 #include "../pl_tag.hpp"
 #include "../invalid_value_strategy.hpp"
 #include "../bits/charconv.hpp"
-#include "../buffer_range.hpp"
+#include "../bytes_range.hpp"
 #include <itlib/small_vector.hpp>
 #include <concepts>
 #include <type_traits>
@@ -334,12 +334,12 @@ public:
     }
 
     // parser compat
-    buffer_range push_string(const char* begin, const char* end) {
+    bytes_range push_string(const char* begin, const char* end) {
         prepare_for_val();
         write_quoted_escaped_ut8_string({begin, end});
         return {};
     }
-    buffer_range push_internal_string(const char* begin, const char* end) {
+    bytes_range push_internal_string(const char* begin, const char* end) {
         prepare_for_val();
         sink.add('"');
         sink.add(begin, end);
@@ -365,15 +365,15 @@ public:
         sink.add(simple_begin, begin);
         return piecewise_string_builder{sink};
     }
-    buffer_range push_string(const piecewise_string_builder&) noexcept {
+    bytes_range push_string(const piecewise_string_builder&) noexcept {
         sink.add('"');
         return {};
     }
 
-    void add_string_element(const buffer_range&) {
+    void add_string_element(const bytes_range&) {
         // nothing to do here since the job has been done by push_string
     }
-    void add_object_key(const buffer_range&) {
+    void add_object_key(const bytes_range&) {
         // the string itself has been added by push_string
         sink.add(':');
         m_has_added_key = true;

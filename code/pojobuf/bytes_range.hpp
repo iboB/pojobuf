@@ -6,7 +6,7 @@
 
 namespace pojobuf {
 
-struct buffer_range {
+struct bytes_range {
     int64_t begin, end;
 };
 

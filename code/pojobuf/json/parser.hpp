@@ -6,7 +6,7 @@
 #include "../parse_error.hpp"
 #include "../parse_error.create.hpp"
 #include "../pl_tag.hpp"
-#include "../buffer_range.hpp"
+#include "../bytes_range.hpp"
 #include "../bits/charconv.hpp"
 
 #include <itlib/expected.hpp>
@@ -402,7 +402,7 @@ class t_parser : public t_parser_base {
         return p + length;
     }
 
-    const char* parse_string(const char* p, buffer_range& out_range) {
+    const char* parse_string(const char* p, bytes_range& out_range) {
         ++p; // "
         const char* const begin = p;
         const char* input_end_local = m_text_end;
@@ -492,7 +492,7 @@ class t_parser : public t_parser_base {
         }
     }
 
-    const char* parse_string_slow(const char* p, buffer_range& out_range, const char* const begin) {
+    const char* parse_string_slow(const char* p, bytes_range& out_range, const char* const begin) {
         auto psb = m_builder.get_piecewise_string_builder(begin, p);
         const char* input_end_local = m_text_end;
 
@@ -746,7 +746,7 @@ class t_parser : public t_parser_base {
             if (*p != '"') [[unlikely]] {
                 return fail(p, errc::missing_object_key);
             }
-            buffer_range range;
+            bytes_range range;
             p = parse_string(p, range);
             if (!p) [[unlikely]] {
                 return nullptr;
@@ -815,7 +815,7 @@ class t_parser : public t_parser_base {
                 break;
             }
             case '"': {
-                buffer_range range;
+                bytes_range range;
                 p = parse_string(p, range);
                 if (!p) [[unlikely]] {
                     return nullptr;

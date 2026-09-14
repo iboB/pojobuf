@@ -38,7 +38,7 @@ struct value_type {
     constexpr bool is_boolean() const { return t == pl_tag::false_ || t == pl_tag::true_; }
     constexpr bool is_integer() const { return t == pl_tag::int32 || t == pl_tag::int64; }
     constexpr bool is_number() const { return is_integer() || t == pl_tag::real; }
-    constexpr bool is_buffer() const { return t == pl_tag::string || t == pl_tag::blob; }
+    constexpr bool is_bytes() const { return t == pl_tag::string || t == pl_tag::blob; }
     constexpr bool is_compound() const { return t == pl_tag::array || is_object(); }
 
     constexpr bool operator==(const value_type&) const = default;

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 //
 #pragma once
-#include "buffer_range.hpp"
+#include "bytes_range.hpp"
 #include "bits/imath.hpp"
 #include <splat/inline.h>
 #include <cstdint>
@@ -21,9 +21,9 @@ public:
         return m_text;
     }
 
-    buffer_range push_internal_string(const char* begin, const char* end) noexcept {
+    bytes_range push_internal_string(const char* begin, const char* end) noexcept {
         assert(begin > m_text);
-        return buffer_range{begin - m_text, end - m_text};
+        return bytes_range{begin - m_text, end - m_text};
     }
 
     struct piecewise_string_builder {
@@ -36,7 +36,7 @@ public:
     piecewise_string_builder get_piecewise_string_builder(const char* simple_begin, const char* begin) noexcept {
         return piecewise_string_builder{simple_begin, const_cast<char*>(begin)};
     }
-    buffer_range push_string(const piecewise_string_builder& psb) noexcept {
+    bytes_range push_string(const piecewise_string_builder& psb) noexcept {
         return push_internal_string(psb.simple_begin, psb.p);
     }
 };
@@ -53,21 +53,21 @@ public:
         return reinterpret_cast<char*>(m_data_alloc.get_value_buffer_ptr());
     }
 
-    buffer_range push_string(const char* begin, const char* end) {
+    bytes_range push_string(const char* begin, const char* end) {
         const int64_t begin_offset = m_data_alloc.get_value_offset() * sizeof(int64_t);
         const int64_t length = end - begin;
 
         if (length == 0) [[unlikely]] {
-            return buffer_range{begin_offset, begin_offset};
+            return bytes_range{begin_offset, begin_offset};
         }
 
         const auto value_length = bits::divide_round_up(length, int64_t(sizeof(int64_t)));
         auto ptr = m_data_alloc.alloc_value(value_length);
         std::memcpy(ptr, begin, length);
-        return buffer_range{begin_offset, begin_offset + length};
+        return bytes_range{begin_offset, begin_offset + length};
     }
 
-    buffer_range push_internal_string(const char* begin, const char* end) {
+    bytes_range push_internal_string(const char* begin, const char* end) {
         return push_string(begin, end);
     }
 
@@ -93,8 +93,8 @@ public:
             .data_alloc = m_data_alloc
         };
     }
-    buffer_range push_string(const piecewise_string_builder& psb) noexcept {
-        return buffer_range{psb.begin_offset, psb.begin_offset + psb.length};
+    bytes_range push_string(const piecewise_string_builder& psb) noexcept {
+        return bytes_range{psb.begin_offset, psb.begin_offset + psb.length};
     }
 };
 

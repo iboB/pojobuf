@@ -93,31 +93,31 @@ public:
         }
     }
 
-    FORCE_INLINE size_t buffer_size() const noexcept {
-        assert(type().is_buffer());
+    FORCE_INLINE size_t bytes_size() const noexcept {
+        assert(type().is_bytes());
         return size_t(m_data_ptr[1] - m_data_ptr[0]);
     }
 
-    FORCE_INLINE std::span<const char> buffer_value() const noexcept {
-        assert(type().is_buffer());
+    FORCE_INLINE std::span<const char> bytes_value() const noexcept {
+        assert(type().is_bytes());
         return std::span<const char>(m_byte_ptr + m_data_ptr[0], m_byte_ptr + m_data_ptr[1]);
     }
 
     FORCE_INLINE size_t blob_size() const noexcept {
-        return buffer_size();
+        return bytes_size();
     }
 
     FORCE_INLINE std::span<const std::byte> blob_value() const noexcept {
-        assert(type().is_buffer());
-        return as_bytes(buffer_value());
+        assert(type().is_bytes());
+        return as_bytes(bytes_value());
     }
 
     FORCE_INLINE size_t string_length() const noexcept {
-        return buffer_size();
+        return bytes_size();
     }
 
     FORCE_INLINE std::string_view string_value() const noexcept {
-        assert(type().is_buffer());
+        assert(type().is_bytes());
         return std::string_view(m_byte_ptr + m_data_ptr[0], m_byte_ptr + m_data_ptr[1]);
     }
 

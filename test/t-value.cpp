@@ -79,7 +79,7 @@ TEST_CASE("value getters") {
         CHECK(val.type().is_string());
         CHECK(val.string_length() == 5);
         CHECK(val.blob_size() == 5);
-        CHECK(val.buffer_size() == 5);
+        CHECK(val.bytes_size() == 5);
 
         static constexpr std::string_view expected = "horse";
         CHECK(val.string_value() == expected);
@@ -89,7 +89,7 @@ TEST_CASE("value getters") {
                 CHECK(char(span[i]) == expected[i]);
             }
         };
-        check_bytes(val.buffer_value());
+        check_bytes(val.bytes_value());
         check_bytes(val.blob_value());
     }
 }
