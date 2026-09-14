@@ -15,8 +15,8 @@ constexpr pl_tag get_tag_from_payload(int64_t payload) {
 constexpr int64_t get_offset_from_payload(int64_t payload) {
     return payload >> pl_tag_bits;
 }
-constexpr int64_t make_payload(pl_tag t, int64_t value) {
-    return (value << pl_tag_bits) | int64_t(t);
+constexpr int64_t make_payload(pl_tag t, int64_t offset) {
+    return (offset << pl_tag_bits) | int64_t(t);
 }
 
 struct object_elem {
