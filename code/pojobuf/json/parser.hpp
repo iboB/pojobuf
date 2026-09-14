@@ -5,7 +5,7 @@
 #include "util.hpp"
 #include "../parse_error.hpp"
 #include "../parse_error.create.hpp"
-#include "../pl_tag.hpp"
+#include "../value_tag.hpp"
 #include "../bytes_range.hpp"
 #include "../bits/charconv.hpp"
 
@@ -728,13 +728,13 @@ class t_parser : public t_parser_base {
 
         pop_array:
             ++p; // skip ']'
-            m_builder.template close_compound_element<pl_tag::array>();
+            m_builder.template close_compound_element<value_tag::array>();
             goto compound_close_or_comma;
             SPLAT_UNREACHABLE();
 
         pop_object:
             ++p; // skip '}'
-            m_builder.template close_compound_element<pl_tag::object>();
+            m_builder.template close_compound_element<value_tag::object>();
             goto compound_close_or_comma;
             SPLAT_UNREACHABLE();
 
@@ -776,21 +776,21 @@ class t_parser : public t_parser_base {
                 if (!p) [[unlikely]] {
                     return nullptr;
                 }
-                m_builder.template add_literal_element<pl_tag::null>();
+                m_builder.template add_literal_element<value_tag::null>();
                 break;
             case 'f':
                 p = parse_literal<'a', 'l', 's', 'e'>(p);
                 if (!p) [[unlikely]] {
                     return nullptr;
                 }
-                m_builder.template add_literal_element<pl_tag::false_>();
+                m_builder.template add_literal_element<value_tag::false_>();
                 break;
             case 't':
                 p = parse_literal<'r', 'u', 'e'>(p);
                 if (!p) [[unlikely]] {
                     return nullptr;
                 }
-                m_builder.template add_literal_element<pl_tag::true_>();
+                m_builder.template add_literal_element<value_tag::true_>();
                 break;
             case '0':
             case '1':
@@ -828,11 +828,11 @@ class t_parser : public t_parser_base {
             // so that we can backtrack appropriately
             // it will subsequently be overwritten with the actual computed payload of the compound type
             case '[': {
-                m_builder.template open_compound_element<pl_tag::array>();
+                m_builder.template open_compound_element<value_tag::array>();
                 goto empty_array_or_element;
             }
             case '{': {
-                m_builder.template open_compound_element<pl_tag::object>();
+                m_builder.template open_compound_element<value_tag::object>();
                 goto empty_object_or_element;
             }
             default:

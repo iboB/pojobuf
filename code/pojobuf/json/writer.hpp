@@ -3,7 +3,7 @@
 //
 #pragma once
 #include "limits.hpp"
-#include "../pl_tag.hpp"
+#include "../value_tag.hpp"
 #include "../invalid_value_strategy.hpp"
 #include "../bits/charconv.hpp"
 #include "../bytes_range.hpp"
@@ -101,12 +101,12 @@ public:
     }
 
     bool current_compound_is_array() {
-        return m_stack.top() == *pl_tag::array;
+        return m_stack.top() == *value_tag::array;
     }
 
     bool current_compound_is_object() {
         auto top = m_stack.top();
-        return top == *pl_tag::object || top == *pl_tag::sorted_object;
+        return top == *value_tag::object || top == *value_tag::sorted_object;
     }
 
     void set_render_compact() {
@@ -171,21 +171,21 @@ public:
         sink.add('"');
     }
 
-    template <pl_tag Tag>
+    template <value_tag Tag>
     void add_literal_element() {
         prepare_for_val();
 
-        if constexpr (Tag == pl_tag::null) {
+        if constexpr (Tag == value_tag::null) {
             sink.add("null", 4);
         }
-        else if constexpr (Tag == pl_tag::false_) {
+        else if constexpr (Tag == value_tag::false_) {
             sink.add("false", 5);
         }
-        else if constexpr (Tag == pl_tag::true_) {
+        else if constexpr (Tag == value_tag::true_) {
             sink.add("true", 4);
         }
         else {
-            static_assert(Tag == pl_tag::null, "unsupported literal tag");
+            static_assert(Tag == value_tag::null, "unsupported literal tag");
         }
     }
 
@@ -196,7 +196,7 @@ public:
     bool write_invalid_num() {
         if constexpr (InvalidNumStrategy == invalid_value_strategy::null) {
             prepare_for_val();
-            add_literal_element<pl_tag::null>();
+            add_literal_element<value_tag::null>();
         }
         return false;
     }
@@ -266,18 +266,18 @@ public:
         write_quoted_escaped_ut8_string(str);
     }
 
-    template <pl_tag Tag>
+    template <value_tag Tag>
     void open_compound_element() {
         prepare_for_val();
 
-        if constexpr (Tag == pl_tag::array) {
+        if constexpr (Tag == value_tag::array) {
             sink.add('[');
         }
-        else if constexpr (Tag == pl_tag::object) {
+        else if constexpr (Tag == value_tag::object) {
             sink.add('{');
         }
         else {
-            static_assert(Tag == pl_tag::array, "unsupported compound element");
+            static_assert(Tag == value_tag::array, "unsupported compound element");
         }
 
         m_has_value = false;
@@ -292,20 +292,20 @@ public:
         m_pending_key = {};
     }
 
-    template <pl_tag Tag>
+    template <value_tag Tag>
     void close_compound_element() {
         if (m_has_value) {
             add_new_line(true);
         }
 
-        if constexpr (Tag == pl_tag::array) {
+        if constexpr (Tag == value_tag::array) {
             sink.add(']');
         }
-        else if constexpr (Tag == pl_tag::object) {
+        else if constexpr (Tag == value_tag::object) {
             sink.add('}');
         }
         else {
-            static_assert(Tag == pl_tag::array, "unsupported compound element");
+            static_assert(Tag == value_tag::array, "unsupported compound element");
         }
 
         m_has_value = true;

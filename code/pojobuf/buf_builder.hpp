@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 //
 #pragma once
-#include "pl_tag.hpp"
+#include "value_tag.hpp"
 #include "valutil.hpp"
 #include "bytes_range.hpp"
 #include <splat/inline.h>
@@ -20,7 +20,7 @@ public:
     ByteAlloc& abyte;
 
     // kinda hacky: we use null to mark the root
-    pl_tag current_compound_tag = pl_tag::null;
+    value_tag current_compound_tag = value_tag::null;
     size_t current_compound_base = 0;
 
     const size_t max_unsorted_obj_records;
@@ -33,16 +33,16 @@ public:
     {}
 
     bool current_compound_is_root() const noexcept {
-        return current_compound_tag == pl_tag::null;
+        return current_compound_tag == value_tag::null;
     }
     bool current_compound_is_array() const noexcept {
-        return current_compound_tag == pl_tag::array;
+        return current_compound_tag == value_tag::array;
     }
     bool current_compound_is_object() const noexcept {
-        return current_compound_tag == pl_tag::object;
+        return current_compound_tag == value_tag::object;
     }
 
-    template <pl_tag Tag>
+    template <value_tag Tag>
     void add_literal_element() {
         *adata.alloc_payload() = int64_t(Tag);
     }
@@ -56,15 +56,15 @@ public:
         if constexpr (std::is_integral_v<Num>) {
             *adata.alloc_value() = int64_t(n);
             if constexpr (sizeof(Num) <= 4) {
-                *adata.alloc_payload() = make_payload(pl_tag::int32, value_offset);
+                *adata.alloc_payload() = make_payload(value_tag::int32, value_offset);
             }
             else {
-                *adata.alloc_payload() = make_payload(pl_tag::int64, value_offset);
+                *adata.alloc_payload() = make_payload(value_tag::int64, value_offset);
             }
         }
         else {
             *adata.alloc_value() = std::bit_cast<int64_t>(double(n));
-            *adata.alloc_payload() = make_payload(pl_tag::real, value_offset);
+            *adata.alloc_payload() = make_payload(value_tag::real, value_offset);
         }
     }
 
@@ -73,15 +73,15 @@ public:
         auto ptr = adata.alloc_value(2);
         ptr[0] = range.begin;
         ptr[1] = range.end;
-        *adata.alloc_payload() = valutil::make_payload(pl_tag::string, value_offset);
+        *adata.alloc_payload() = valutil::make_payload(value_tag::string, value_offset);
     }
 
-    template <pl_tag Tag>
+    template <value_tag Tag>
     void open_compound_element() {
         // for compound types make a payload that points to the current compound tag and base
         // so that we can backtrack appropriately
         // it will subsequently be overwritten with the actual computed payload of the compound type
-        static_assert(Tag == pl_tag::array || Tag == pl_tag::object);
+        static_assert(Tag == value_tag::array || Tag == value_tag::object);
         *adata.alloc_payload() = valutil::make_payload(current_compound_tag, current_compound_base);
         current_compound_tag = Tag;
         current_compound_base = adata.get_cur_payload_offset();
@@ -96,7 +96,7 @@ public:
         return records_size > max_unsorted_obj_records;
     }
 
-    template <pl_tag Tag>
+    template <value_tag Tag>
     void close_compound_element() {
         if constexpr (DataAlloc::is_single_buf) {
             close_compound_element_single_buf<Tag>();
@@ -107,7 +107,7 @@ public:
     }
 
     int64_t finalize() noexcept {
-        assert(current_compound_tag == pl_tag::null);
+        assert(current_compound_tag == value_tag::null);
         return adata.get_cur_payload();
     }
 
@@ -127,11 +127,11 @@ public:
 
 private:
 
-    template <pl_tag Tag>
+    template <value_tag Tag>
     void close_compound_element_single_buf() {
         using namespace valutil;
 
-        static_assert(Tag == pl_tag::array || Tag == pl_tag::object);
+        static_assert(Tag == value_tag::array || Tag == value_tag::object);
 
         const auto pl_begin = adata.tail;
         const auto pl_end = adata.get_value_buffer_ptr() + current_compound_base;
@@ -148,7 +148,7 @@ private:
 
         const auto length = pl_end - pl_begin;
         bool is_sorted_object = false;
-        if constexpr (Tag == pl_tag::array) {
+        if constexpr (Tag == value_tag::array) {
             *length_value = length;
             if (head_ptr + length > pl_begin) [[unlikely]] {
                 // overlap: reverse and move forward
@@ -166,7 +166,7 @@ private:
                 }
             }
         }
-        else if constexpr (Tag == pl_tag::object) {
+        else if constexpr (Tag == value_tag::object) {
             assert(length % object_elem::num_fields == 0);
             const auto records_size = length / ptrdiff_t(object_elem::num_fields);
             *length_value = records_size;
@@ -199,7 +199,7 @@ private:
         current_compound_base = get_offset_from_payload(*pl_end);
 
         if (is_sorted_object) [[unlikely]] {
-            *pl_end = make_payload(pl_tag::sorted_object, value_offset);
+            *pl_end = make_payload(value_tag::sorted_object, value_offset);
         }
         else {
             *pl_end = make_payload(Tag, value_offset);
@@ -208,10 +208,10 @@ private:
         adata.tail = pl_end;
     }
 
-    template <pl_tag Tag>
+    template <value_tag Tag>
     void close_compound_element_fwd() {
         using namespace valutil;
-        static_assert(Tag == pl_tag::array || Tag == pl_tag::object);
+        static_assert(Tag == value_tag::array || Tag == value_tag::object);
 
         const auto pl_head = adata.get_payload_buffer_ptr() + current_compound_base;
         const auto pl_begin = pl_head + 1;
@@ -224,7 +224,7 @@ private:
         auto pval = adata.alloc_value(length);
 
         bool is_sorted_object = false;
-        if constexpr (Tag == pl_tag::array) {
+        if constexpr (Tag == value_tag::array) {
             *length_value = length;
             for (ptrdiff_t i = 0; i < length; ++i) {
                 auto elem = pl_begin[i];
@@ -232,7 +232,7 @@ private:
                 pval[i] = make_payload(get_tag_from_payload(elem), offset - val_offset);
             }
         }
-        else if constexpr (Tag == pl_tag::object) {
+        else if constexpr (Tag == value_tag::object) {
             assert(length % object_elem::num_fields == 0);
             auto records_begin = reinterpret_cast<object_elem*>(pl_begin);
             auto records_size = length / ptrdiff_t(object_elem::num_fields);
@@ -264,7 +264,7 @@ private:
         current_compound_base = get_offset_from_payload(*pl_head);
 
         if (is_sorted_object) [[unlikely]] {
-            *pl_head = make_payload(pl_tag::sorted_object, val_offset);
+            *pl_head = make_payload(value_tag::sorted_object, val_offset);
         }
         else {
             *pl_head = make_payload(Tag, val_offset);

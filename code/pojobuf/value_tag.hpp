@@ -14,7 +14,7 @@ namespace pojobuf {
 // values, and only ever append new ones after custom. Buffers built by one version of the
 // library are only guaranteed to be readable by another if this order is preserved. A change to
 // this order is a new major version and should come with a conversion utility for old buffers.
-enum class pl_tag : uint8_t {
+enum class value_tag : uint8_t {
     undefined,
     null,
     false_,
@@ -30,14 +30,14 @@ enum class pl_tag : uint8_t {
 
     custom // keep last
 };
-constexpr uint32_t operator*(pl_tag t) {
+constexpr uint32_t operator*(value_tag t) {
     return uint32_t(t);
 }
 
-// in buffers we pack array and object elements as `offset << pl_tag_bits | pl_tag`
+// in buffers we pack array and object elements as `offset << value_tag_bits | value_tag`
 // since we use uint64_t for elements, this gives us 60 bits for the offset, which is plenty
 // see sajson.md for more about this
-inline constexpr uint32_t pl_tag_bits = 4;
-static_assert(*pl_tag::custom < (1 << pl_tag_bits));
+inline constexpr uint32_t value_tag_bits = 4;
+static_assert(*value_tag::custom < (1 << value_tag_bits));
 
 } // namespace pojobuf

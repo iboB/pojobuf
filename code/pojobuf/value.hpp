@@ -3,7 +3,7 @@
 //
 #pragma once
 #include "value_type.hpp"
-#include "pl_tag.hpp"
+#include "value_tag.hpp"
 #include "valutil.hpp"
 
 #include <bit>
@@ -21,7 +21,7 @@ namespace pojobuf {
 
 class value {
 public:
-    value() noexcept : m_tag(pl_tag::undefined), m_data_ptr(nullptr), m_byte_ptr(nullptr) {}
+    value() noexcept : m_tag(value_tag::undefined), m_data_ptr(nullptr), m_byte_ptr(nullptr) {}
 
     explicit value(int64_t payload, const int64_t* parent_data_ptr, const char* byte_ptr)
         : m_tag(valutil::get_tag_from_payload(payload))
@@ -32,7 +32,7 @@ public:
     value(const value&) noexcept = default;
     value& operator=(const value&) noexcept = default;
 
-    pl_tag tag() const noexcept { return m_tag; }
+    value_tag tag() const noexcept { return m_tag; }
     value_type type() const noexcept { return value_type(m_tag); }
     const int64_t* data_ptr() const noexcept { return m_data_ptr; }
     const char* byte_ptr() const noexcept { return m_byte_ptr; }
@@ -202,7 +202,7 @@ public:
         const auto length = compound_length();
         const auto elems = get_object_elems();
 
-        if (m_tag == pl_tag::sorted_object) [[unlikely]] {
+        if (m_tag == value_tag::sorted_object) [[unlikely]] {
             // sorted objects are the rare case (most objects aren't big enough to be sorted; see
             // buf_builder::should_sort_object). keeping this path out of find_object_key proper, and
             // never inlining it, keeps the common (linear scan) case small enough to always inline
@@ -239,7 +239,7 @@ public:
     object_elems object_elements() const noexcept;
 
 private:
-    pl_tag m_tag;
+    value_tag m_tag;
     const int64_t* m_data_ptr;
     const char* m_byte_ptr;
 

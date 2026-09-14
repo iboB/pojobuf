@@ -12,7 +12,7 @@
 
 TEST_CASE("empty") {
     pojobuf::value val;
-    CHECK(val.tag() == pojobuf::pl_tag::undefined);
+    CHECK(val.tag() == pojobuf::value_tag::undefined);
     CHECK_FALSE(val.data_ptr());
     CHECK_FALSE(val.byte_ptr());
     CHECK(val.type().is_undefined());

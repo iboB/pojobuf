@@ -2,21 +2,21 @@
 // SPDX-License-Identifier: MIT
 //
 #pragma once
-#include "pl_tag.hpp"
+#include "value_tag.hpp"
 #include <cstdint>
 #include <cstring>
 #include <string_view>
 
 namespace pojobuf::valutil {
 
-constexpr pl_tag get_tag_from_payload(int64_t payload) {
-    return pl_tag(payload & ((1 << pl_tag_bits) - 1));
+constexpr value_tag get_tag_from_payload(int64_t payload) {
+    return value_tag(payload & ((1 << value_tag_bits) - 1));
 }
 constexpr int64_t get_offset_from_payload(int64_t payload) {
-    return payload >> pl_tag_bits;
+    return payload >> value_tag_bits;
 }
-constexpr int64_t make_payload(pl_tag t, int64_t offset) {
-    return (offset << pl_tag_bits) | int64_t(t);
+constexpr int64_t make_payload(value_tag t, int64_t offset) {
+    return (offset << value_tag_bits) | int64_t(t);
 }
 
 struct object_elem {

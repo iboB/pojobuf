@@ -11,7 +11,7 @@ namespace pojobuf {
 // (to be implemented in transfer_ex)
 template <typename Builder>
 void value_transfer(Builder& b, const value& v) {
-    using enum pl_tag;
+    using enum value_tag;
     switch (v.tag()) {
     case null:
         b.template add_literal_element<null>();

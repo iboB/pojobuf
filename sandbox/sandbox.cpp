@@ -15,7 +15,7 @@
 #include <vector>
 
 void rdump(pojobuf::value val) {
-    using enum pojobuf::pl_tag;
+    using enum pojobuf::value_tag;
     switch (*val.type()) {
     case array: {
         std::cout << "[";
