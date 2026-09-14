@@ -218,10 +218,10 @@ private:
         const auto pl_end = adata.get_payload_ptr();
 
         const auto val_offset = adata.get_value_offset();
-        auto length_value = adata.alloc_value();
 
         const auto length = pl_end - pl_begin;
-        auto pval = adata.alloc_value(length);
+        const auto length_value = adata.alloc_value(length + 1);
+        auto pval = length_value + 1;
 
         bool is_sorted_object = false;
         if constexpr (Tag == value_tag::array) {
