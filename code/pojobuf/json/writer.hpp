@@ -60,7 +60,6 @@ class writer {
     bool m_has_added_key = false; // only through builder compat functions
     uint32_t m_compact_depth;
     Stack m_stack;
-    std::string_view m_pending_key = {};
 
     void add_new_line(bool close) const {
         if (cur_depth_is_compact()) return;
@@ -285,11 +284,10 @@ public:
     }
 
     void add_object_key(std::string_view str) {
-        m_pending_key = str;
-    }
-
-    void discard_pending_key() noexcept {
-        m_pending_key = {};
+        prepare_for_val();
+        write_quoted_escaped_ut8_string(str);
+        sink.add(':');
+        m_has_added_key = true;
     }
 
     template <value_tag Tag>
@@ -323,12 +321,6 @@ public:
         }
 
         add_new_line(false);
-
-        if (m_pending_key.data()) {
-            write_quoted_escaped_ut8_string(m_pending_key);
-            sink.add(':');
-            m_pending_key = {};
-        }
 
         m_has_value = true;
     }

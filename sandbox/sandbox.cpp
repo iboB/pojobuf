@@ -92,10 +92,10 @@ int main() {
 
     dump(root);
 
-    //pojobuf::ostream_string_sink sink(std::cout);
-    //pojobuf::json::writer w(sink, true);
+    pojobuf::ostream_string_sink sink(std::cout);
+    pojobuf::json::writer w(sink, true);
 
-    //pojobuf::json::parser_charconv_num::parse(json, w);
+    pojobuf::json::parser_charconv_num::parse(json, w);
 
     return 0;
 }
