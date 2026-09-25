@@ -29,7 +29,7 @@ auto document_parse_with(Source&& source, size_t max_unsorted_obj_records = size
     std::string_view source_sv(std::data(source), std::size(source));
 
     const auto buf_size = Parser::get_buffer_size_for_text(source_sv);
-    bits::pod_vector buffer(buf_size);
+    itlib::pod_vector_noinit<int64_t> buffer(buf_size);
 
     auto data_alloc = alloc::single_buf_nocheck_data_alloc::from_container(buffer);
     auto byte_alloc = [&]() {

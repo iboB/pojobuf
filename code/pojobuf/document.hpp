@@ -3,7 +3,7 @@
 //
 #pragma once
 #include "value.hpp"
-#include "bits/pod_vector.hpp"
+#include <itlib/pod_vector.hpp>
 #include <splat/unreachable.h>
 
 namespace pojobuf {
@@ -18,14 +18,14 @@ struct no_buf {
 
 template <typename ByteBuf = no_buf>
 class document {
-    bits::pod_vector m_buffer; // structure (and optionally strings)
+    itlib::pod_vector_noinit<int64_t> m_buffer; // structure (and optionally strings)
     ByteBuf m_byte_buf; // optional owned string buffer (likely the parsed source)
     const char* m_x_byte_ptr; // optional external string pointer
     int64_t m_root_payload;
 public:
     document() = default;
 
-    explicit document(bits::pod_vector&& buffer, ByteBuf&& byte_buf, const char* x_byte_ptr, int64_t root_payload)
+    explicit document(itlib::pod_vector_noinit<int64_t>&& buffer, ByteBuf&& byte_buf, const char* x_byte_ptr, int64_t root_payload)
         : m_buffer(std::move(buffer))
         , m_byte_buf(std::move(byte_buf))
         , m_x_byte_ptr(x_byte_ptr)
@@ -59,7 +59,7 @@ public:
 
     bool empty() const noexcept { return m_buffer.empty(); }
 
-    const bits::pod_vector& buffer() const noexcept { return m_buffer; }
+    const itlib::pod_vector_noinit<int64_t>& buffer() const noexcept { return m_buffer; }
     const ByteBuf& byte_buf() const noexcept { return m_byte_buf; }
 
     int64_t root_payload() const noexcept { return m_root_payload; }

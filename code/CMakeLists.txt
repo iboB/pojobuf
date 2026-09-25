@@ -5,7 +5,7 @@ add_library(pojobuf INTERFACE)
 add_library(pojobuf::pojobuf ALIAS pojobuf)
 
 CPMAddPackage(gh:iboB/splat@1.3.5)
-CPMAddPackage(gh:iboB/itlib@1.12.2)
+CPMAddPackage(gh:iboB/itlib@1.12.3)
 target_link_libraries(pojobuf INTERFACE
     splat::splat
     itlib::itlib

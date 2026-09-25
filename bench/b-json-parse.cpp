@@ -15,6 +15,7 @@
 #include <picobench/picobench.hpp>
 
 #include <pojobuf/dev/read_file.hpp>
+#include <itlib/pod_vector.hpp>
 #include <json-test-data.h>
 #include <string>
 
@@ -49,7 +50,7 @@ template <bool UseCharconv>
 void bench_pojobuf_mut(picobench::state& state) {
     auto content = get_input(state).content;
 
-    pojobuf::bits::pod_vector buffer(pojobuf::json::get_buffer_size_for_json(content));
+    itlib::pod_vector_noinit<int64_t> buffer(pojobuf::json::get_buffer_size_for_json(content));
     auto data_alloc = pojobuf::alloc::single_buf_nocheck_data_alloc::from_container(buffer);
     pojobuf::alloc::mutable_source_byte_alloc byte_alloc(content.data());
     pojobuf::buf_builder builder(data_alloc, byte_alloc);
@@ -76,10 +77,10 @@ void bench_pojobuf_const(picobench::state& state) {
 void bench_sajson_mut(picobench::state& state) {
     auto content = get_input(state).content;
 
-    // note that we use the noinit allocator here
+    // note that we use the noinit typedef here
     // if we don't, pod_vector will zero-init the memory which incidentally also warms it up
     // thus the result from parse below becomes significantly faster as the buffer is in cache
-    itlib::pod_vector<size_t, pojobuf::bits::noinit_pod_allocator> buffer(content.size());
+    itlib::pod_vector_noinit<size_t> buffer(content.size());
 
     state.start_timer();
     auto doc = sajson::parse(

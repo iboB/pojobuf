@@ -9,7 +9,6 @@
 #include <pojobuf/json/util.hpp>
 #include <pojobuf/container_string_sink.hpp>
 #include <pojobuf/json/writer.hpp>
-#include <pojobuf/bits/pod_vector.hpp>
 
 #include <doctest/doctest.h>
 
@@ -111,8 +110,8 @@ pojobuf::value parse_and_get_root(std::string_view json, Builder& builder) {
 void t(std::string_view json, uint32_t flags = test_flags_default, std::optional<std::string_view> expected_dump = {}) {
     const auto oracle = nljson::parse(json);
 
-    pojobuf::bits::pod_vector buf(pojobuf::json::get_buffer_size_for_json(json));
-    pojobuf::bits::pod_vector scratch_buf(pojobuf::json::get_scratch_buffer_size_for_json(json));
+    itlib::pod_vector_noinit<int64_t> buf(pojobuf::json::get_buffer_size_for_json(json));
+    itlib::pod_vector_noinit<int64_t> scratch_buf(pojobuf::json::get_scratch_buffer_size_for_json(json));
 
     {
         auto doc = pojobuf::document_parse_with<
