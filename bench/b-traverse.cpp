@@ -370,7 +370,7 @@ hash_t check_setSubscriptions(boost::json::object& obj) {
     auto it = obj.find("setSubscriptions");
     if (it == obj.end()) return 0;
     hash_t res = 0;
-    auto subobj = it->value().as_object();
+    auto& subobj = it->value().as_object();
     for (auto& kv : subobj) {
         res += hash(kv.key());
         res += hash(kv.value().as_string());
@@ -382,20 +382,20 @@ hash_t check_setRequestBatch(boost::json::object& obj) {
     auto it = obj.find("setRequestBatch");
     if (it == obj.end()) return 0;
     hash_t res = 0;
-    auto batchobj = it->value().as_object();
+    auto& batchobj = it->value().as_object();
     {
         std::string_view batchId = batchobj["batchID"].as_string();
         res += hash(batchId);
     }
-    auto reqs = batchobj["requests"].as_object();
+    auto& reqs = batchobj["requests"].as_object();
     for (auto& reqv : reqs) {
-        auto req = reqv.value().as_object();
+        auto& req = reqv.value().as_object();
         {
-            auto minobj = req["min"].as_object();
+            auto& minobj = req["min"].as_object();
             res += read_vec(minobj).sum();
         }
         {
-            auto maxobj = req["max"].as_object();
+            auto& maxobj = req["max"].as_object();
             res += read_vec(maxobj).sum();
         }
     }
@@ -405,7 +405,7 @@ hash_t check_setRequestBatch(boost::json::object& obj) {
 hash_t check_ping(boost::json::object& obj) {
     auto it = obj.find("ping");
     if (it == obj.end()) return 0;
-    auto pingobj = it->value().as_object();
+    auto& pingobj = it->value().as_object();
     std::string_view pl = pingobj["payload"].as_string();
     return hash(pl);
 }
@@ -414,7 +414,7 @@ hash_t check_setInteraction(boost::json::object& obj) {
     auto it = obj.find("setInteraction");
     if (it == obj.end()) return 0;
     hash_t res = 0;
-    auto interobj = it->value().as_object();
+    auto& interobj = it->value().as_object();
     std::string_view type = interobj["type"].as_string();
     if (type != "PlanarDrag_World") return 42;
     bool done = interobj["done"].as_bool();
@@ -425,7 +425,7 @@ hash_t check_setInteraction(boost::json::object& obj) {
     int id = int(interobj["id"].as_int64());
     int seq = int(interobj["seq"].as_int64());
     res += id + seq;
-    auto structures = interobj["structures"].as_array();
+    auto& structures = interobj["structures"].as_array();
     for (auto& sv : structures) {
         std::string_view sid = sv.as_string();
         res += hash(sid);
@@ -434,7 +434,7 @@ hash_t check_setInteraction(boost::json::object& obj) {
 }
 
 hash_t traverse(boost::json::value& val) {
-    auto obj = val.as_object();
+    auto& obj = val.as_object();
     hash_t res = 0;
     res += check_ack(obj);
     res += check_setSubscriptions(obj);
