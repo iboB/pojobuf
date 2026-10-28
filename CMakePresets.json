@@ -18,25 +18,32 @@
       "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug" }
     },
     {
-      "name": "base-release",
+      "name": "base-reldeb",
       "hidden": true,
       "inherits": "base",
       "cacheVariables": { "CMAKE_BUILD_TYPE": "RelWithDebInfo" }
     },
     {
-      "name": "static",
+      "name": "base-release",
       "hidden": true,
-      "cacheVariables": { "BUILD_SHARED_LIBS": "OFF" }
+      "inherits": "base",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Release" }
     },
     {
       "name": "gcc",
       "hidden": true,
-      "cacheVariables": { "CMAKE_C_COMPILER": "gcc", "CMAKE_CXX_COMPILER": "g++" }
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "gcc",
+        "CMAKE_CXX_COMPILER": "g++"
+      }
     },
     {
       "name": "clang",
       "hidden": true,
-      "cacheVariables": { "CMAKE_C_COMPILER": "clang", "CMAKE_CXX_COMPILER": "clang++" }
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_COMPILER": "clang++"
+      }
     },
     {
       "name": "asan",
@@ -64,80 +71,68 @@
       "inherits": "base-debug"
     },
     {
+      "name": "reldeb",
+      "inherits": "base-reldeb"
+    },
+    {
       "name": "release",
       "inherits": "base-release"
     },
 
     {
-      "name": "debug-static",
-      "inherits": ["base-debug", "static"]
-    },
-    {
-      "name": "release-static",
-      "inherits": ["base-release", "static"]
-    },
-
-    {
       "name": "debug-gcc",
-      "inherits": ["base-debug", "gcc"]
+      "inherits": [ "base-debug", "gcc" ]
+    },
+    {
+      "name": "reldeb-gcc",
+      "inherits": [ "base-reldeb", "gcc" ]
     },
     {
       "name": "release-gcc",
-      "inherits": ["base-release", "gcc"]
+      "inherits": [ "base-release", "gcc" ]
     },
 
     {
       "name": "debug-clang",
-      "inherits": ["base-debug", "clang"]
+      "inherits": [ "base-debug", "clang" ]
+    },
+    {
+      "name": "reldeb-clang",
+      "inherits": [ "base-reldeb", "clang" ]
     },
     {
       "name": "release-clang",
-      "inherits": ["base-release", "clang"]
+      "inherits": [ "base-release", "clang" ]
     },
 
     {
       "name": "debug-asan",
-      "inherits": ["base-debug", "asan"]
+      "inherits": [ "base-debug", "asan" ]
+    },
+    {
+      "name": "reldeb-asan",
+      "inherits": [ "base-reldeb", "asan" ]
     },
     {
       "name": "release-asan",
-      "inherits": ["base-release", "asan"]
+      "inherits": [ "base-release", "asan" ]
     },
     {
       "name": "debug-tsan",
-      "inherits": ["base-debug", "tsan"]
+      "inherits": [ "base-debug", "tsan" ]
+    },
+    {
+      "name": "reldeb-tsan",
+      "inherits": [ "base-reldeb", "tsan" ]
     },
     {
       "name": "release-tsan",
-      "inherits": ["base-release", "tsan"]
+      "inherits": [ "base-release", "tsan" ]
     },
     {
       "name": "debug-aublsan",
       "description": "combining addr, ub and leak sanitizers is widely supported on many platforms",
-      "inherits": ["base-debug", "asan", "ubsan", "lsan"]
-    },
-
-    {
-      "name": "android",
-      "hidden": true,
-      "cacheVariables": {
-        "CMAKE_SYSTEM_NAME": "Android",
-        "CMAKE_SYSTEM_VERSION": "24",
-        "CMAKE_ANDROID_ARCH_ABI": "arm64-v8a",
-        "CMAKE_ANDROID_NDK": {
-          "value": "$env{ANDROID_NDK_ROOT}",
-          "type": "PATH"
-        },
-        "CMAKE_ANDROID_STL_TYPE": "c++_static"
-      }
-    },
-    {
-      "name": "debug-android",
-      "inherits": ["debug", "android"]
-    },
-    {
-      "name": "release-android",
-      "inherits": ["release", "android"]
+      "inherits": [ "base-debug", "asan", "ubsan", "lsan" ]
     }
   ]
 }
