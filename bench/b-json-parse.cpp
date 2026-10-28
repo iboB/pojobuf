@@ -10,6 +10,7 @@
 
 #include <simdjson.h>
 #include <boost/json.hpp>
+#include <nlohmann/json.hpp>
 
 #define PICOBENCH_IMPLEMENT
 #include <picobench/picobench.hpp>
@@ -148,6 +149,14 @@ void bench_boost(picobench::state& state) {
     }
 }
 
+void bench_nlohmann(picobench::state& state) {
+    auto& content = get_input(state).content;
+    state.start_timer();
+    auto jv = nlohmann::json::parse(content);
+    state.stop_timer();
+    state.set_result(jv.size());
+}
+
 int main(int argc, char* argv[]) {
     //const char* files[] = { JSON_TEST_DATA_JSON_FILES };
     // let's only benchmark the longer files
@@ -188,6 +197,7 @@ int main(int argc, char* argv[]) {
         add_benchmark("sajson-const", bench_sajson_const);
         add_benchmark("simdjson", bench_simdjson);
         add_benchmark("boost", bench_boost);
+        add_benchmark("nlohmann", bench_nlohmann);
     }
 
     r.set_compare_results_across_samples(true);

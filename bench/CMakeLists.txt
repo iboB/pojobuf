@@ -36,6 +36,7 @@ macro(pojobuf_benchmark name)
         sajson::sajson
         simdjson::simdjson
         Boost::json
+        nlohmann_json::nlohmann_json
         pojobuf::dev
         test-data::json
     )

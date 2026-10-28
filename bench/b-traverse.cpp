@@ -9,6 +9,7 @@
 #include <sajson.h>
 
 #include <simdjson.h>
+#include <nlohmann/json.hpp>
 
 #define PICOBENCH_IMPLEMENT
 #include <picobench/picobench.hpp>
@@ -444,6 +445,89 @@ hash_t traverse(boost::json::value& val) {
 }
 
 /////////////////////////////////
+// nlohmann
+
+hash_t check_ack(nlohmann::json& obj) {
+    auto it = obj.find("ack");
+    if (it == obj.end()) return 0;
+    return it->get<int>();
+}
+
+hash_t check_setSubscriptions(nlohmann::json& obj) {
+    auto it = obj.find("setSubscriptions");
+    if (it == obj.end()) return 0;
+    hash_t res = 0;
+    for (auto& kv : it->items()) {
+        res += hash(kv.key());
+        res += hash(kv.value().get<std::string_view>());
+    }
+    return res;
+}
+
+vec read_vec(nlohmann::json& obj) {
+    return {
+        obj.at("x").get<int>(),
+        obj.at("y").get<int>(),
+        obj.at("z").get<int>(),
+    };
+}
+
+hash_t check_setRequestBatch(nlohmann::json& obj) {
+    auto it = obj.find("setRequestBatch");
+    if (it == obj.end()) return 0;
+    hash_t res = 0;
+    {
+        auto batchId = it->at("batchID").get<std::string_view>();
+        res += hash(batchId);
+    }
+    auto& reqs = it->at("requests");
+    for (auto& req : reqs) {
+        res += read_vec(req.at("min")).sum();
+        res += read_vec(req.at("max")).sum();
+    }
+    return res;
+}
+
+hash_t check_ping(nlohmann::json& obj) {
+    auto it = obj.find("ping");
+    if (it == obj.end()) return 0;
+    auto pl = it->at("payload").get<std::string_view>();
+    return hash(pl);
+}
+
+hash_t check_setInteraction(nlohmann::json& obj) {
+    auto it = obj.find("setInteraction");
+    if (it == obj.end()) return 0;
+    hash_t res = 0;
+    auto type = it->at("type").get<std::string_view>();
+    if (type != "PlanarDrag_World") return 42;
+    bool done = it->at("done").get<bool>();
+    bool confirm = it->at("confirm").get<bool>();
+    res += done + confirm;
+    auto tool = it->at("tool").get<std::string_view>();
+    res += hash(tool);
+    int id = it->at("id").get<int>();
+    int seq = it->at("seq").get<int>();
+    res += id + seq;
+    auto structures = it->at("structures").get<nlohmann::json::array_t>();
+    for (auto& sv : structures) {
+        std::string_view sid = sv.get<std::string_view>();
+        res += hash(sid);
+    }
+    return res;
+}
+
+hash_t traverse(nlohmann::json& val) {
+    hash_t res = 0;
+    res += check_ack(val);
+    res += check_setSubscriptions(val);
+    res += check_setRequestBatch(val);
+    res += check_ping(val);
+    res += check_setInteraction(val);
+    return res;
+}
+
+/////////////////////////////////
 // benchmarks
 
 void bench_pojobuf(picobench::state& state) {
@@ -537,6 +621,20 @@ void bench_simdjson(picobench::state& state) {
     state.set_result(sum);
 }
 
+void bench_nlohmann(picobench::state& state) {
+    auto& lines = get_input(state).lines;
+    std::vector<nlohmann::json> roots;
+    roots.reserve(lines.size());
+    for (auto& l : lines) {
+        roots.push_back(nlohmann::json::parse(l));
+    }
+    hash_t sum = 0;
+    for (auto i : state) {
+        sum += traverse(roots[i]);
+    }
+    state.set_result(sum);
+}
+
 int main(int argc, char* argv[]) {
     input inputs[] = {
         {JSON_TEST_DATA_FILE_client_traffic_txt, },
@@ -561,6 +659,7 @@ int main(int argc, char* argv[]) {
     r.add_benchmark("sajson", bench_sajson).inputs(pb_inputs);
     r.add_benchmark("simdjson", bench_simdjson).inputs(pb_inputs);
     r.add_benchmark("boost", bench_boost).inputs(pb_inputs);
+    r.add_benchmark("nlohmann", bench_nlohmann).inputs(pb_inputs);
 
     r.set_compare_results_across_samples(true);
     r.set_compare_results_across_benchmarks(true);
