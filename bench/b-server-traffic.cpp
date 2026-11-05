@@ -95,7 +95,7 @@ void bench_simdjson(picobench::state& state) {
     hash_t sum = 0;
     for (auto i : state) {
         simdjson::dom::document doc;
-        doc.allocate(lines[i].size());
+        std::ignore = doc.allocate(lines[i].size());
         p.parse_into_document(doc, lines[i]);
         sum += traverse(doc.root());
     }
