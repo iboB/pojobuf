@@ -49,3 +49,4 @@ endmacro()
 
 pojobuf_benchmark(json-parse)
 pojobuf_benchmark(traverse)
+pojobuf_benchmark(server-traffic)

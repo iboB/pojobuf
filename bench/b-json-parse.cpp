@@ -1,6 +1,9 @@
 // Copyright (c) Borislav Stanimirov
 // SPDX-License-Identifier: MIT
 //
+
+// benchmarking json parsing only
+
 #include <pojobuf/document.hpp>
 #include <pojobuf/document_parse.hpp>
 #include <pojobuf/json/parser.hpp>
